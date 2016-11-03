@@ -7,8 +7,9 @@
 //
 
 import CoreLocation
+import YepKit
 
-class YepLocationService: NSObject, CLLocationManagerDelegate {
+final class YepLocationService: NSObject, CLLocationManagerDelegate {
 
     class func turnOn() {
         if (CLLocationManager.locationServicesEnabled()){
@@ -30,9 +31,16 @@ class YepLocationService: NSObject, CLLocationManagerDelegate {
         locationManager.headingFilter = kCLHeadingFilterNone
         locationManager.requestWhenInUseAuthorization()
         return locationManager
-        }()
+    }()
 
-    var currentLocation: CLLocation?
+    var currentLocation: CLLocation? {
+        didSet {
+            if let currentLocation = currentLocation {
+                YepUserDefaults.userCoordinateLatitude.value = currentLocation.coordinate.latitude
+                YepUserDefaults.userCoordinateLongitude.value = currentLocation.coordinate.longitude
+            }
+        }
+    }
     var address: String?
     let geocoder = CLGeocoder()
 
@@ -61,7 +69,7 @@ class YepLocationService: NSObject, CLLocationManagerDelegate {
 
         geocoder.reverseGeocodeLocation(newLocation, completionHandler: { (placemarks, error) in
 
-            dispatch_async(dispatch_get_main_queue()) { [weak self] in
+            SafeDispatch.async { [weak self] in
 
                 if (error != nil) {
                     println("self reverse geocode fail: \(error?.localizedDescription)")

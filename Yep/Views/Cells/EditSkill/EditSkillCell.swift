@@ -7,9 +7,10 @@
 //
 
 import UIKit
+import YepKit
 import Ruler
 
-class EditSkillCell: UITableViewCell {
+final class EditSkillCell: UITableViewCell {
 
     var userSkill: UserSkill? {
         didSet {
@@ -24,20 +25,13 @@ class EditSkillCell: UITableViewCell {
     @IBOutlet weak var removeButton: UIButton!
     @IBOutlet weak var removeButtonTrailingConstraint: NSLayoutConstraint!
 
-
     override func awakeFromNib() {
         super.awakeFromNib()
 
         skillLabelLeadingConstraint.constant = Ruler.iPhoneHorizontal(15, 20, 25).value
         removeButtonTrailingConstraint.constant = Ruler.iPhoneHorizontal(15, 20, 25).value
 
-        removeButton.addTarget(self, action: "tryRemoveSkill", forControlEvents: .TouchUpInside)
-    }
-
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
+        removeButton.addTarget(self, action: #selector(EditSkillCell.tryRemoveSkill), forControlEvents: .TouchUpInside)
     }
 
     // MARK: Actions

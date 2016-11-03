@@ -8,9 +8,14 @@
 
 import UIKit
 
-class DiscoverFlowLayout: UICollectionViewFlowLayout {
-    
-    var userMode: DiscoverUserMode?
+final class DiscoverFlowLayout: UICollectionViewFlowLayout {
+
+    enum Mode {
+        case Normal
+        case Card
+    }
+
+    var mode: Mode?
     
 //    override func prepareLayout() {
 //        switch userMode! {

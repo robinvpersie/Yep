@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import YepKit
 
-class SkillAddCell: UICollectionViewCell {
+final class SkillAddCell: UICollectionViewCell {
 
     var skillSet: SkillSet = .Master
 

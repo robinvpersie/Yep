@@ -1,5 +1,5 @@
 //
-//  YepSoundEffectHelper.swift
+//  YepSoundEffect.swift
 //  Yep
 //
 //  Created by zhowkevin on 15/9/23.
@@ -8,33 +8,31 @@
 
 import AudioToolbox.AudioServices
 
-class YepSoundEffect: NSObject {
+final public class YepSoundEffect: NSObject {
 
     var soundID: SystemSoundID?
     
-    init(soundName: String) {
+    public init(fileURL: NSURL) {
         super.init()
-        
-        if let fileURL = NSBundle.mainBundle().URLForResource(soundName, withExtension: "caf") {
-            var theSoundID: SystemSoundID = 0
-            let error = AudioServicesCreateSystemSoundID(fileURL, &theSoundID)
-            if (error == kAudioServicesNoError) {
-                soundID = theSoundID
-            } else {
-                println("YepSoundEffect Init Error")
-            }
+
+        var theSoundID: SystemSoundID = 0
+        let error = AudioServicesCreateSystemSoundID(fileURL, &theSoundID)
+        if (error == kAudioServicesNoError) {
+            soundID = theSoundID
+        } else {
+            fatalError("YepSoundEffect: init failed!")
         }
     }
-    
-    func play() {
-        if let soundID = soundID {
-            AudioServicesPlaySystemSound(soundID)
-        }
-    }
-    
+
     deinit {
         if let soundID = soundID {
             AudioServicesDisposeSystemSoundID(soundID)
+        }
+    }
+
+    public func play() {
+        if let soundID = soundID {
+            AudioServicesPlaySystemSound(soundID)
         }
     }
 }

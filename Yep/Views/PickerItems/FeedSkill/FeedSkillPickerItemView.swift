@@ -7,11 +7,12 @@
 //
 
 import UIKit
+import YepKit
 
-class FeedSkillPickerItemView: UIView {
+final class FeedSkillPickerItemView: UIView {
 
     lazy var bubbleImageView: UIImageView = {
-        let view = UIImageView(image: UIImage(named: "skill_bubble")!)
+        let view = UIImageView(image: UIImage.yep_skillBubble)
         return view
     }()
 
@@ -64,7 +65,7 @@ class FeedSkillPickerItemView: UIView {
             bubbleImageView.image = nil
         } else {
             skillLabel.textColor = UIColor.whiteColor()
-            bubbleImageView.image = UIImage(named: "skill_bubble")
+            bubbleImageView.image = UIImage.yep_skillBubble
         }
     }
 }

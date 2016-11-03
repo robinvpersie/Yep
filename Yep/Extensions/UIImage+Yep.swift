@@ -2,520 +2,601 @@
 //  UIImage+Yep.swift
 //  Yep
 //
-//  Created by NIX on 15/3/16.
-//  Copyright (c) 2015年 Catch Inc. All rights reserved.
+//  Created by NIX on 16/8/10.
+//  Copyright © 2016年 Catch Inc. All rights reserved.
 //
 
 import UIKit
-import Ruler
-import ImageIO
-import MobileCoreServices
+
+// MARK: - Badges
 
 extension UIImage {
 
-    func largestCenteredSquareImage() -> UIImage {
-        let scale = self.scale
-
-        let originalWidth  = self.size.width * scale
-        let originalHeight = self.size.height * scale
-
-        let edge: CGFloat
-        if originalWidth > originalHeight {
-            edge = originalHeight
-        } else {
-            edge = originalWidth
-        }
-
-        let posX = (originalWidth  - edge) / 2.0
-        let posY = (originalHeight - edge) / 2.0
-
-        let cropSquare = CGRectMake(posX, posY, edge, edge)
-
-        let imageRef = CGImageCreateWithImageInRect(self.CGImage, cropSquare)!
-
-        return UIImage(CGImage: imageRef, scale: scale, orientation: self.imageOrientation)
-    }
-
-    func resizeToTargetSize(targetSize: CGSize) -> UIImage {
-        let size = self.size
-
-        let widthRatio  = targetSize.width  / self.size.width
-        let heightRatio = targetSize.height / self.size.height
-
-        let scale = UIScreen.mainScreen().scale
-        let newSize: CGSize
-        if(widthRatio > heightRatio) {
-            newSize = CGSizeMake(scale * floor(size.width * heightRatio), scale * floor(size.height * heightRatio))
-        } else {
-            newSize = CGSizeMake(scale * floor(size.width * widthRatio), scale * floor(size.height * widthRatio))
-        }
-
-        let rect = CGRectMake(0, 0, floor(newSize.width), floor(newSize.height))
-
-        //println("size: \(size), newSize: \(newSize), rect: \(rect)")
-
-        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-        self.drawInRect(rect)
-        let newImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        return newImage
-    }
-
-    func scaleToMinSideLength(sideLength: CGFloat) -> UIImage {
-
-        let pixelSideLength = sideLength * UIScreen.mainScreen().scale
-
-        //println("pixelSideLength: \(pixelSideLength)")
-        //println("size: \(size)")
-
-        let pixelWidth = size.width * scale
-        let pixelHeight = size.height * scale
-
-        //println("pixelWidth: \(pixelWidth)")
-        //println("pixelHeight: \(pixelHeight)")
-
-        let newSize: CGSize
-
-        if pixelWidth > pixelHeight {
-
-            guard pixelHeight > pixelSideLength else {
-                return self
-            }
-
-            let newHeight = pixelSideLength
-            let newWidth = (pixelSideLength / pixelHeight) * pixelWidth
-            newSize = CGSize(width: floor(newWidth), height: floor(newHeight))
-
-        } else {
-
-            guard pixelWidth > pixelSideLength else {
-                return self
-            }
-
-            let newWidth = pixelSideLength
-            let newHeight = (pixelSideLength / pixelWidth) * pixelHeight
-            newSize = CGSize(width: floor(newWidth), height: floor(newHeight))
-        }
-
-        if scale == UIScreen.mainScreen().scale {
-            let newSize = CGSize(width: floor(newSize.width / scale), height: floor(newSize.height / scale))
-            //println("A scaleToMinSideLength newSize: \(newSize)")
-
-            UIGraphicsBeginImageContextWithOptions(newSize, false, scale)
-            let rect = CGRectMake(0, 0, newSize.width, newSize.height)
-            self.drawInRect(rect)
-            let newImage = UIGraphicsGetImageFromCurrentImageContext()
-            UIGraphicsEndImageContext()
-
-            if let image = newImage {
-                return image
-            }
-
-            return self
-
-        } else {
-            //println("B scaleToMinSideLength newSize: \(newSize)")
-            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-            let rect = CGRectMake(0, 0, newSize.width, newSize.height)
-            self.drawInRect(rect)
-            let newImage = UIGraphicsGetImageFromCurrentImageContext()
-            UIGraphicsEndImageContext()
-
-            if let image = newImage {
-                return image
-            }
-
-            return self
-        }
-    }
-
-    func fixRotation() -> UIImage {
-        if self.imageOrientation == .Up {
-            return self
-        }
-
-        let width = self.size.width
-        let height = self.size.height
-
-        var transform = CGAffineTransformIdentity
-
-        switch self.imageOrientation {
-        case .Down, .DownMirrored:
-            transform = CGAffineTransformTranslate(transform, width, height)
-            transform = CGAffineTransformRotate(transform, CGFloat(M_PI))
-
-        case .Left, .LeftMirrored:
-            transform = CGAffineTransformTranslate(transform, width, 0)
-            transform = CGAffineTransformRotate(transform, CGFloat(M_PI_2))
-
-        case .Right, .RightMirrored:
-            transform = CGAffineTransformTranslate(transform, 0, height)
-            transform = CGAffineTransformRotate(transform, CGFloat(-M_PI_2))
-
-        default:
-            break
-        }
-
-        switch self.imageOrientation {
-        case .UpMirrored, .DownMirrored:
-            transform = CGAffineTransformTranslate(transform, width, 0);
-            transform = CGAffineTransformScale(transform, -1, 1);
-
-        case .LeftMirrored, .RightMirrored:
-            transform = CGAffineTransformTranslate(transform, height, 0);
-            transform = CGAffineTransformScale(transform, -1, 1);
-
-        default:
-            break
-        }
-
-        let selfCGImage = self.CGImage
-        let context = CGBitmapContextCreate(nil, Int(width), Int(height), CGImageGetBitsPerComponent(selfCGImage), 0, CGImageGetColorSpace(selfCGImage), CGImageGetBitmapInfo(selfCGImage).rawValue);
-
-        CGContextConcatCTM(context, transform)
-
-        switch self.imageOrientation {
-        case .Left, .LeftMirrored, .Right, .RightMirrored:
-            CGContextDrawImage(context, CGRectMake(0,0, height, width), selfCGImage)
-
-        default:
-            CGContextDrawImage(context, CGRectMake(0,0, width, height), selfCGImage)
-        }
-
-        let cgImage = CGBitmapContextCreateImage(context)!
-        return UIImage(CGImage: cgImage)
+    static func yep_badgeWithName(name: String) -> UIImage {
+        return UIImage(named: "badge_" + name)!
     }
 }
 
-// MARK: Message Image
+// MARK: - Images
 
-enum MessageImageTailDirection {
-    case Left
-    case Right
-}
+// nix love awk, in Images.xcassets
+// $ ls -l | awk '{print $9}' | awk -F"." '{print $1}' | awk -F"_" '{out=$0" ";for(i=1;i<=NF;i++){if(i==1){out=out""tolower($i)}else{out=out""toupper(substr($i,1,1))substr($i,2)}};print out}' | awk '{print "static var yep_"$2": UIImage {\n\treturn UIImage(named: \""$1"\")!\n}\n"}' > ~/Downloads/images.swift
+// ref https://github.com/nixzhu/dev-blog/blob/master/2016-08-11-awk.md
 
 extension UIImage {
 
-    func cropToAspectRatio(aspectRatio: CGFloat) -> UIImage {
-        let size = self.size
+    static var yep_bubbleBody: UIImage {
+        return UIImage(named: "bubble_body")!
+    }
 
-        let originalAspectRatio = size.width / size.height
+    static var yep_bubbleLeftTail: UIImage {
+        return UIImage(named: "bubble_left_tail")!
+    }
 
-        var rect = CGRectZero
+    static var yep_bubbleRightTail: UIImage {
+        return UIImage(named: "bubble_right_tail")!
+    }
 
-        if originalAspectRatio > aspectRatio {
-            let width = size.height * aspectRatio
-            rect = CGRect(x: (size.width - width) * 0.5, y: 0, width: width, height: size.height)
+    static var yep_buttonCameraRoll: UIImage {
+        return UIImage(named: "button_camera_roll")!
+    }
 
-        } else if originalAspectRatio < aspectRatio {
-            let height = size.width / aspectRatio
-            rect = CGRect(x: 0, y: (size.height - height) * 0.5, width: size.width, height: height)
+    static var yep_buttonCapture: UIImage {
+        return UIImage(named: "button_capture")!
+    }
 
-        } else {
-            return self
-        }
+    static var yep_buttonCaptureOk: UIImage {
+        return UIImage(named: "button_capture_ok")!
+    }
 
-        let cgImage = CGImageCreateWithImageInRect(self.CGImage, rect)!
-        return UIImage(CGImage: cgImage)
+    static var yep_buttonSkillCategory: UIImage {
+        return UIImage(named: "button_skill_category")!
+    }
+
+    static var yep_buttonVoicePause: UIImage {
+        return UIImage(named: "button_voice_pause")!
+    }
+
+    static var yep_buttonVoicePlay: UIImage {
+        return UIImage(named: "button_voice_play")!
+    }
+
+    static var yep_buttonVoiceReset: UIImage {
+        return UIImage(named: "button_voice_reset")!
+    }
+
+    static var yep_chatSharetopicbubble: UIImage {
+        return UIImage(named: "chat_sharetopicbubble")!
+    }
+
+    static var yep_defaultAvatar: UIImage {
+        return UIImage(named: "default_avatar")!
+    }
+
+    static var yep_defaultAvatar30: UIImage {
+        return UIImage(named: "default_avatar_30")!
+    }
+
+    static var yep_defaultAvatar40: UIImage {
+        return UIImage(named: "default_avatar_40")!
+    }
+
+    static var yep_defaultAvatar60: UIImage {
+        return UIImage(named: "default_avatar_60")!
+    }
+
+    static var yep_feedAudioBubble: UIImage {
+        return UIImage(named: "feed_audio_bubble")!
+    }
+
+    static var yep_feedContainerBackground: UIImage {
+        return UIImage(named: "feed_container_background")!
+    }
+
+    static var yep_feedMediaAdd: UIImage {
+        return UIImage(named: "feed_media_add")!
+    }
+
+    static var yep_feedSkillChannelArrow: UIImage {
+        return UIImage(named: "feed_skill_channel_arrow")!
+    }
+
+    static var yep_flatArrowDown: UIImage {
+        return UIImage(named: "flat_arrow_down")!
+    }
+
+    static var yep_flatArrowLeft: UIImage {
+        return UIImage(named: "flat_arrow_left")!
+    }
+
+    static var yep_gradientArt: UIImage {
+        return UIImage(named: "gradient_art")!
+    }
+
+    static var yep_gradientLife: UIImage {
+        return UIImage(named: "gradient_life")!
+    }
+
+    static var yep_gradientSport: UIImage {
+        return UIImage(named: "gradient_sport")!
+    }
+
+    static var yep_gradientTech: UIImage {
+        return UIImage(named: "gradient_tech")!
+    }
+
+    static var yep_iconAccessory: UIImage {
+        return UIImage(named: "icon_accessory")!
+    }
+
+    static var yep_iconAccessoryMini: UIImage {
+        return UIImage(named: "icon_accessory_mini")!
+    }
+
+    static var yep_iconArrowDown: UIImage {
+        return UIImage(named: "icon_arrow_down")!
+    }
+
+    static var yep_iconArrowUp: UIImage {
+        return UIImage(named: "icon_arrow_up")!
+    }
+
+    static var yep_iconBack: UIImage {
+        return UIImage(named: "icon_back")!
+    }
+
+    static var yep_iconBlog: UIImage {
+        return UIImage(named: "icon_blog")!
+    }
+
+    static var yep_iconChat: UIImage {
+        return UIImage(named: "icon_chat")!
+    }
+
+    static var yep_iconChatActive: UIImage {
+        return UIImage(named: "icon_chat_active")!
+    }
+
+    static var yep_iconChatActiveUnread: UIImage {
+        return UIImage(named: "icon_chat_active_unread")!
+    }
+
+    static var yep_iconChatUnread: UIImage {
+        return UIImage(named: "icon_chat_unread")!
+    }
+
+    static var yep_iconContact: UIImage {
+        return UIImage(named: "icon_contact")!
+    }
+
+    static var yep_iconContactActive: UIImage {
+        return UIImage(named: "icon_contact_active")!
+    }
+
+    static var yep_iconCurrentLocation: UIImage {
+        return UIImage(named: "icon_current_location")!
+    }
+
+    static var yep_iconDiscussion: UIImage {
+        return UIImage(named: "icon_discussion")!
+    }
+
+    static var yep_iconDotFailed: UIImage {
+        return UIImage(named: "icon_dot_failed")!
+    }
+
+    static var yep_iconDotSending: UIImage {
+        return UIImage(named: "icon_dot_sending")!
+    }
+
+    static var yep_iconDotUnread: UIImage {
+        return UIImage(named: "icon_dot_unread")!
+    }
+
+    static var yep_iconDribbble: UIImage {
+        return UIImage(named: "icon_dribbble")!
+    }
+
+    static var yep_iconExplore: UIImage {
+        return UIImage(named: "icon_explore")!
+    }
+
+    static var yep_iconExploreActive: UIImage {
+        return UIImage(named: "icon_explore_active")!
+    }
+
+    static var yep_iconFeedText: UIImage {
+        return UIImage(named: "icon_feed_text")!
+    }
+
+    static var yep_iconFeeds: UIImage {
+        return UIImage(named: "icon_feeds")!
+    }
+
+    static var yep_iconFeedsActive: UIImage {
+        return UIImage(named: "icon_feeds_active")!
+    }
+
+    static var yep_iconGhost: UIImage {
+        return UIImage(named: "icon_ghost")!
+    }
+
+    static var yep_iconGithub: UIImage {
+        return UIImage(named: "icon_github")!
+    }
+
+    static var yep_iconImagepickerCheck: UIImage {
+        return UIImage(named: "icon_imagepicker_check")!
+    }
+
+    static var yep_iconInstagram: UIImage {
+        return UIImage(named: "icon_instagram")!
+    }
+
+    static var yep_iconKeyboard: UIImage {
+        return UIImage(named: "icon_keyboard")!
+    }
+
+    static var yep_iconLink: UIImage {
+        return UIImage(named: "icon_link")!
+    }
+
+    static var yep_iconList: UIImage {
+        return UIImage(named: "icon_list")!
+    }
+
+    static var yep_iconLocation: UIImage {
+        return UIImage(named: "icon_location")!
+    }
+
+    static var yep_iconLocationCheckmark: UIImage {
+        return UIImage(named: "icon_location_checkmark")!
+    }
+
+    static var yep_iconMe: UIImage {
+        return UIImage(named: "icon_me")!
+    }
+
+    static var yep_iconMeActive: UIImage {
+        return UIImage(named: "icon_me_active")!
+    }
+
+    static var yep_iconMediaDelete: UIImage {
+        return UIImage(named: "icon_media_delete")!
+    }
+
+    static var yep_iconMinicard: UIImage {
+        return UIImage(named: "icon_minicard")!
+    }
+
+    static var yep_iconMore: UIImage {
+        return UIImage(named: "icon_more")!
+    }
+
+    static var yep_iconMoreImage: UIImage {
+        return UIImage(named: "icon_more_image")!
+    }
+
+    static var yep_iconPause: UIImage {
+        return UIImage(named: "icon_pause")!
+    }
+
+    static var yep_iconPin: UIImage {
+        return UIImage(named: "icon_pin")!
+    }
+
+    static var yep_iconPinMiniGray: UIImage {
+        return UIImage(named: "icon_pin_mini_gray")!
+    }
+
+    static var yep_iconPinShadow: UIImage {
+        return UIImage(named: "icon_pin_shadow")!
+    }
+
+    static var yep_iconPlay: UIImage {
+        return UIImage(named: "icon_play")!
+    }
+
+    static var yep_iconPlayvideo: UIImage {
+        return UIImage(named: "icon_playvideo")!
+    }
+
+    static var yep_iconProfilePhone: UIImage {
+        return UIImage(named: "icon_profile_phone")!
+    }
+
+    static var yep_iconQuickCamera: UIImage {
+        return UIImage(named: "icon_quick_camera")!
+    }
+
+    static var yep_iconRemove: UIImage {
+        return UIImage(named: "icon_remove")!
+    }
+
+    static var yep_iconRepo: UIImage {
+        return UIImage(named: "icon_repo")!
+    }
+
+    static var yep_iconSettings: UIImage {
+        return UIImage(named: "icon_settings")!
+    }
+
+    static var yep_iconShare: UIImage {
+        return UIImage(named: "icon_share")!
+    }
+
+    static var yep_iconSkillArt: UIImage {
+        return UIImage(named: "icon_skill_art")!
+    }
+
+    static var yep_iconSkillBall: UIImage {
+        return UIImage(named: "icon_skill_ball")!
+    }
+
+    static var yep_iconSkillCategoryArrow: UIImage {
+        return UIImage(named: "icon_skill_category_arrow")!
+    }
+
+    static var yep_iconSkillLife: UIImage {
+        return UIImage(named: "icon_skill_life")!
+    }
+
+    static var yep_iconSkillMusic: UIImage {
+        return UIImage(named: "icon_skill_music")!
+    }
+
+    static var yep_iconSkillTech: UIImage {
+        return UIImage(named: "icon_skill_tech")!
+    }
+
+    static var yep_iconStars: UIImage {
+        return UIImage(named: "icon_stars")!
+    }
+
+    static var yep_iconSubscribeClose: UIImage {
+        return UIImage(named: "icon_subscribe_close")!
+    }
+
+    static var yep_iconSubscribeNotify: UIImage {
+        return UIImage(named: "icon_subscribe_notify")!
+    }
+
+    static var yep_iconTopic: UIImage {
+        return UIImage(named: "icon_topic")!
+    }
+
+    static var yep_iconTopicReddot: UIImage {
+        return UIImage(named: "icon_topic_reddot")!
+    }
+
+    static var yep_iconTopicText: UIImage {
+        return UIImage(named: "icon_topic_text")!
+    }
+
+    static var yep_iconVoiceLeft: UIImage {
+        return UIImage(named: "icon_voice_left")!
+    }
+
+    static var yep_iconVoiceRight: UIImage {
+        return UIImage(named: "icon_voice_right")!
+    }
+
+    static var yep_imageRectangleBorder: UIImage {
+        return UIImage(named: "image_rectangle_border")!
+    }
+
+    static var yep_itemMic: UIImage {
+        return UIImage(named: "item_mic")!
+    }
+
+    static var yep_itemMore: UIImage {
+        return UIImage(named: "item_more")!
+    }
+
+    static var yep_leftTailBubble: UIImage {
+        return UIImage(named: "left_tail_bubble")!
+    }
+
+    static var yep_leftTailImageBubble: UIImage {
+        return UIImage(named: "left_tail_image_bubble")!
+    }
+
+    static var yep_leftTailImageBubbleBorder: UIImage {
+        return UIImage(named: "left_tail_image_bubble_border")!
+    }
+
+    static var yep_locationBottomShadow: UIImage {
+        return UIImage(named: "location_bottom_shadow")!
+    }
+
+    static var yep_minicardBubble: UIImage {
+        return UIImage(named: "minicard_bubble")!
+    }
+
+    static var yep_minicardBubbleMore: UIImage {
+        return UIImage(named: "minicard_bubble_more")!
+    }
+
+    static var yep_pickSkillsDismissBackground: UIImage {
+        return UIImage(named: "pick_skills_dismiss_background")!
+    }
+
+    static var yep_profileAvatarFrame: UIImage {
+        return UIImage(named: "profile_avatar_frame")!
+    }
+
+    static var yep_rightTailBubble: UIImage {
+        return UIImage(named: "right_tail_bubble")!
+    }
+
+    static var yep_rightTailImageBubble: UIImage {
+        return UIImage(named: "right_tail_image_bubble")!
+    }
+
+    static var yep_rightTailImageBubbleBorder: UIImage {
+        return UIImage(named: "right_tail_image_bubble_border")!
+    }
+    
+    static var yep_searchbarTextfieldBackground: UIImage {
+        return UIImage(named: "searchbar_textfield_background")!
+    }
+    
+    static var yep_shareFeedBubbleLeft: UIImage {
+        return UIImage(named: "share_feed_bubble_left")!
+    }
+    
+    static var yep_skillAdd: UIImage {
+        return UIImage(named: "skill_add")!
+    }
+    
+    static var yep_skillBubble: UIImage {
+        return UIImage(named: "skill_bubble")!
+    }
+    
+    static var yep_skillBubbleEmpty: UIImage {
+        return UIImage(named: "skill_bubble_empty")!
+    }
+    
+    static var yep_skillBubbleEmptyGray: UIImage {
+        return UIImage(named: "skill_bubble_empty_gray")!
+    }
+    
+    static var yep_skillBubbleLarge: UIImage {
+        return UIImage(named: "skill_bubble_large")!
+    }
+    
+    static var yep_skillBubbleLargeEmpty: UIImage {
+        return UIImage(named: "skill_bubble_large_empty")!
+    }
+    
+    static var yep_socialMediaImageMask: UIImage {
+        return UIImage(named: "social_media_image_mask")!
+    }
+    
+    static var yep_socialMediaImageMaskFull: UIImage {
+        return UIImage(named: "social_media_image_mask_full")!
+    }
+    
+    static var yep_socialWorkBorder: UIImage {
+        return UIImage(named: "social_work_border")!
+    }
+    
+    static var yep_socialWorkBorderLine: UIImage {
+        return UIImage(named: "social_work_border_line")!
+    }
+    
+    static var yep_swipeUp: UIImage {
+        return UIImage(named: "swipe_up")!
+    }
+    
+    static var yep_topShadow: UIImage {
+        return UIImage(named: "top_shadow")!
+    }
+    
+    static var yep_unreadRedDot: UIImage {
+        return UIImage(named: "unread_red_dot")!
+    }
+    
+    static var yep_urlContainerLeftBackground: UIImage {
+        return UIImage(named: "url_container_left_background")!
+    }
+    
+    static var yep_urlContainerRightBackground: UIImage {
+        return UIImage(named: "url_container_right_background")!
+    }
+    
+    static var yep_voiceIndicator: UIImage {
+        return UIImage(named: "voice_indicator")!
+    }
+    
+    static var yep_white: UIImage {
+        return UIImage(named: "white")!
+    }
+    
+    static var yep_yepIconSolo: UIImage {
+        return UIImage(named: "yep_icon_solo")!
     }
 }
 
+// MARK: - Activities
+
 extension UIImage {
 
-    func imageWithGradientTintColor(tintColor: UIColor) -> UIImage {
-
-        return imageWithTintColor(tintColor, blendMode: CGBlendMode.Overlay)
+    static var yep_wechatSession: UIImage {
+        return UIImage(named: "wechat_session")!
     }
 
-    func imageWithTintColor(tintColor: UIColor, blendMode: CGBlendMode) -> UIImage {
-        UIGraphicsBeginImageContextWithOptions(size, false, 0)
-
-        tintColor.setFill()
-
-        let bounds = CGRect(origin: CGPointZero, size: size)
-
-        UIRectFill(bounds)
-
-        self.drawInRect(bounds, blendMode: blendMode, alpha: 1)
-
-        if blendMode != CGBlendMode.DestinationIn {
-            self.drawInRect(bounds, blendMode: CGBlendMode.DestinationIn, alpha: 1)
-        }
-
-        let tintedImage = UIGraphicsGetImageFromCurrentImageContext()
-
-        UIGraphicsEndImageContext()
-
-        return tintedImage
+    static var yep_wechatTimeline: UIImage {
+        return UIImage(named: "wechat_timeline")!
     }
 }
 
-extension UIImage {
-
-    func renderAtSize(size: CGSize) -> UIImage {
-
-        // 确保 size 为整数，防止 mask 里出现白线
-        let size = CGSize(width: ceil(size.width), height: ceil(size.height))
-
-        UIGraphicsBeginImageContextWithOptions(size, false, 0) // key
-
-        let context = UIGraphicsGetCurrentContext()
-
-        drawInRect(CGRect(origin: CGPointZero, size: size))
-
-        let cgImage = CGBitmapContextCreateImage(context)!
-
-        let image = UIImage(CGImage: cgImage)
-
-        UIGraphicsEndImageContext()
-
-        return image
-    }
-
-    func maskWithImage(maskImage: UIImage) -> UIImage {
-
-        let scale = UIScreen.mainScreen().scale
-        UIGraphicsBeginImageContextWithOptions(self.size, false, scale)
-
-        let context = UIGraphicsGetCurrentContext()
-
-        var transform = CGAffineTransformConcat(CGAffineTransformIdentity, CGAffineTransformMakeScale(1.0, -1.0))
-        transform = CGAffineTransformConcat(transform, CGAffineTransformMakeTranslation(0.0, self.size.height))
-        CGContextConcatCTM(context, transform)
-
-        let drawRect = CGRect(origin: CGPointZero, size: self.size)
-
-        CGContextClipToMask(context, drawRect, maskImage.CGImage)
-
-        CGContextDrawImage(context, drawRect, self.CGImage)
-
-        let roundImage = UIGraphicsGetImageFromCurrentImageContext()
-
-        UIGraphicsEndImageContext()
-
-        return roundImage
-    }
-
-    struct BubbleMaskImage {
-
-        static let leftTail: UIImage = {
-            let scale = UIScreen.mainScreen().scale
-            let orientation: UIImageOrientation = .Up
-            var maskImage = UIImage(CGImage: UIImage(named: "left_tail_image_bubble")!.CGImage!, scale: scale, orientation: orientation)
-            maskImage = maskImage.resizableImageWithCapInsets(UIEdgeInsets(top: 25, left: 27, bottom: 20, right: 20), resizingMode: UIImageResizingMode.Stretch)
-            return maskImage
-        }()
-
-        static let rightTail: UIImage = {
-            let scale = UIScreen.mainScreen().scale
-            let orientation: UIImageOrientation = .Up
-            var maskImage = UIImage(CGImage: UIImage(named: "right_tail_image_bubble")!.CGImage!, scale: scale, orientation: orientation)
-            maskImage = maskImage.resizableImageWithCapInsets(UIEdgeInsets(top: 24, left: 20, bottom: 20, right: 27), resizingMode: UIImageResizingMode.Stretch)
-            return maskImage
-        }()
-    }
-
-    func bubbleImageWithTailDirection(tailDirection: MessageImageTailDirection, size: CGSize, forMap: Bool = false) -> UIImage {
-
-        //let orientation: UIImageOrientation = tailDirection == .Left ? .Up : .UpMirrored
-
-        let maskImage: UIImage
-
-        if tailDirection == .Left {
-            maskImage = BubbleMaskImage.leftTail.renderAtSize(size)
-        } else {
-            maskImage = BubbleMaskImage.rightTail.renderAtSize(size)
-        }
-
-        if forMap {
-            let image = cropToAspectRatio(size.width / size.height).resizeToTargetSize(size)
-
-            UIGraphicsBeginImageContextWithOptions(image.size, true, image.scale)
-
-            image.drawAtPoint(CGPointZero)
-
-            let bottomShadowImage = UIImage(named: "location_bottom_shadow")!
-            let bottomShadowHeightRatio: CGFloat = 0.185 // 20 / 108
-            bottomShadowImage.drawInRect(CGRect(x: 0, y: floor(image.size.height * (1 - bottomShadowHeightRatio)), width: image.size.width, height: ceil(image.size.height * bottomShadowHeightRatio)))
-
-            let finalImage = UIGraphicsGetImageFromCurrentImageContext()
-
-            UIGraphicsEndImageContext()
-
-            let bubbleImage = finalImage.maskWithImage(maskImage)
-            
-            return bubbleImage
-        }
-
-        // fixRotation 会消耗大量内存，改在发送前做
-        let bubbleImage = /*self.fixRotation().*/cropToAspectRatio(size.width / size.height).resizeToTargetSize(size).maskWithImage(maskImage)
-
-        return bubbleImage
-    }
-}
-
-// MARK: - Decode
+// MARK: - Badges
 
 extension UIImage {
 
-    func decodedImage() -> UIImage {
-        return decodedImage(scale: scale)
+    static var yep_badgeAndroid: UIImage {
+        return UIImage(named: "badge_android")!
     }
 
-    func decodedImage(scale scale: CGFloat) -> UIImage {
-        let imageRef = CGImage
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.PremultipliedLast.rawValue)
-        let context = CGBitmapContextCreate(nil, CGImageGetWidth(imageRef), CGImageGetHeight(imageRef), 8, 0, colorSpace, bitmapInfo.rawValue)
-
-        if let context = context {
-            let rect = CGRectMake(0, 0, CGFloat(CGImageGetWidth(imageRef)), CGFloat(CGImageGetHeight(imageRef)))
-            CGContextDrawImage(context, rect, imageRef)
-            let decompressedImageRef = CGBitmapContextCreateImage(context)!
-
-            return UIImage(CGImage: decompressedImageRef, scale: scale, orientation: imageOrientation) ?? self
-        }
-
-        return self
-    }
-}
-
-// MARK: Resize
-
-extension UIImage {
-
-    func resizeToSize(size: CGSize, withTransform transform: CGAffineTransform, drawTransposed: Bool, interpolationQuality: CGInterpolationQuality) -> UIImage? {
-
-        let newRect = CGRectIntegral(CGRect(origin: CGPointZero, size: size))
-        let transposedRect = CGRect(origin: CGPointZero, size: CGSize(width: size.height, height: size.width))
-
-        let bitmapContext = CGBitmapContextCreate(nil, Int(newRect.width), Int(newRect.height), CGImageGetBitsPerComponent(CGImage), 0, CGImageGetColorSpace(CGImage), CGImageGetBitmapInfo(CGImage).rawValue)
-
-        CGContextConcatCTM(bitmapContext, transform)
-
-        CGContextSetInterpolationQuality(bitmapContext, interpolationQuality)
-
-        CGContextDrawImage(bitmapContext, drawTransposed ? transposedRect : newRect, CGImage)
-
-        let newCGImage = CGBitmapContextCreateImage(bitmapContext)!
-        let newImage = UIImage(CGImage: newCGImage)
-
-        return newImage
+    static var yep_badgeApple: UIImage {
+        return UIImage(named: "badge_apple")!
     }
 
-    func transformForOrientationWithSize(size: CGSize) -> CGAffineTransform {
-        var transform = CGAffineTransformIdentity
-
-        switch imageOrientation {
-        case .Down, .DownMirrored:
-            transform = CGAffineTransformTranslate(transform, size.width, size.height)
-            transform = CGAffineTransformRotate(transform, CGFloat(M_PI))
-
-        case .Left, .LeftMirrored:
-            transform = CGAffineTransformTranslate(transform, size.width, 0)
-            transform = CGAffineTransformRotate(transform, CGFloat(M_PI_2))
-
-        case .Right, .RightMirrored:
-            transform = CGAffineTransformTranslate(transform, 0, size.height)
-            transform = CGAffineTransformRotate(transform, CGFloat(-M_PI_2))
-
-        default:
-            break
-        }
-
-        switch imageOrientation {
-        case .UpMirrored, .DownMirrored:
-            transform = CGAffineTransformTranslate(transform, size.width, 0)
-            transform = CGAffineTransformScale(transform, -1, 1)
-
-        case .LeftMirrored, .RightMirrored:
-            transform = CGAffineTransformTranslate(transform, size.height, 0)
-            transform = CGAffineTransformScale(transform, -1, 1)
-
-        default:
-            break
-        }
-
-        return transform
+    static var yep_badgeBall: UIImage {
+        return UIImage(named: "badge_ball")!
     }
 
-    func resizeToSize(size: CGSize, withInterpolationQuality interpolationQuality: CGInterpolationQuality) -> UIImage? {
-
-        let drawTransposed: Bool
-
-        switch imageOrientation {
-        case .Left, .LeftMirrored, .Right, .RightMirrored:
-            drawTransposed = true
-        default:
-            drawTransposed = false
-        }
-
-        return resizeToSize(size, withTransform: transformForOrientationWithSize(size), drawTransposed: drawTransposed, interpolationQuality: interpolationQuality)
+    static var yep_badgeBubble: UIImage {
+        return UIImage(named: "badge_bubble")!
     }
-}
 
-extension UIImage {
-
-    var yep_avarageColor: UIColor {
-
-        let rgba = UnsafeMutablePointer<CUnsignedChar>.alloc(4)
-        let colorSpace: CGColorSpaceRef = CGColorSpaceCreateDeviceRGB()!
-        let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.PremultipliedLast.rawValue)
-        let context: CGContextRef = CGBitmapContextCreate(rgba, 1, 1, 8, 4, colorSpace, info.rawValue)!
-
-        CGContextDrawImage(context, CGRectMake(0, 0, 1, 1), CGImage)
-
-        let alpha: CGFloat = (rgba[3] > 0) ? (CGFloat(rgba[3]) / 255.0) : 1
-        let multiplier = alpha / 255.0
-
-        return UIColor(red: CGFloat(rgba[0]) * multiplier, green: CGFloat(rgba[1]) * multiplier, blue: CGFloat(rgba[2]) * multiplier, alpha: alpha)
+    static var yep_badgeCamera: UIImage {
+        return UIImage(named: "badge_camera")!
     }
-}
 
-// MARK: Progressive
+    static var yep_badgeGame: UIImage {
+        return UIImage(named: "badge_game")!
+    }
 
-extension UIImage {
+    static var yep_badgeHeart: UIImage {
+        return UIImage(named: "badge_heart")!
+    }
 
-    var yep_progressiveImage: UIImage? {
+    static var yep_badgeMusic: UIImage {
+        return UIImage(named: "badge_music")!
+    }
 
-        guard let cgImage = CGImage else {
-            return nil
-        }
+    static var yep_badgePalette: UIImage {
+        return UIImage(named: "badge_palette")!
+    }
 
-        let data = NSMutableData()
+    static var yep_badgePet: UIImage {
+        return UIImage(named: "badge_pet")!
+    }
 
-        guard let distination = CGImageDestinationCreateWithData(data, kUTTypeJPEG, 1, nil) else {
-            return nil
-        }
+    static var yep_badgePlane: UIImage {
+        return UIImage(named: "badge_plane")!
+    }
 
-        let jfifProperties = [
-            kCGImagePropertyJFIFIsProgressive as String: kCFBooleanTrue as Bool,
-            kCGImagePropertyJFIFXDensity as String: 72,
-            kCGImagePropertyJFIFYDensity as String: 72,
-            kCGImagePropertyJFIFDensityUnit as String: 1,
-        ]
+    static var yep_badgeStar: UIImage {
+        return UIImage(named: "badge_star")!
+    }
 
-        let properties = [
-            kCGImageDestinationLossyCompressionQuality as String: 0.9,
-            kCGImagePropertyJFIFDictionary as String: jfifProperties,
-        ]
+    static var yep_badgeSteve: UIImage {
+        return UIImage(named: "badge_steve")!
+    }
 
-        CGImageDestinationAddImage(distination, cgImage, properties)
-
-        guard CGImageDestinationFinalize(distination) else {
-            return nil
-        }
-
-        guard data.length > 0 else {
-            return nil
-        }
-
-        guard let progressiveImage = UIImage(data: data) else {
-            return nil
-        }
-
-        return progressiveImage
+    static var yep_badgeTech: UIImage {
+        return UIImage(named: "badge_tech")!
+    }
+    
+    static var yep_badgeWine: UIImage {
+        return UIImage(named: "badge_wine")!
+    }
+    
+    static var yep_enabledBadgeBackground: UIImage {
+        return UIImage(named: "enabled_badge_background")!
     }
 }
 

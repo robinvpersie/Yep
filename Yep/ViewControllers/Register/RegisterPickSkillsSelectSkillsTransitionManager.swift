@@ -8,19 +8,21 @@
 
 import UIKit
 
-class RegisterPickSkillsSelectSkillsTransitionManager: NSObject, UIViewControllerTransitioningDelegate, UIViewControllerAnimatedTransitioning {
+final class RegisterPickSkillsSelectSkillsTransitionManager: NSObject, UIViewControllerTransitioningDelegate, UIViewControllerAnimatedTransitioning {
 
     var isPresentation = false
 
     // MARK: UIViewControllerTransitioningDelegate
 
     func animationControllerForPresentedController(presented: UIViewController, presentingController presenting: UIViewController, sourceController source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+
         isPresentation = true
 
         return self
     }
 
     func animationControllerForDismissedController(dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+
         isPresentation = false
 
         return self
@@ -29,6 +31,7 @@ class RegisterPickSkillsSelectSkillsTransitionManager: NSObject, UIViewControlle
     // MARK: UIViewControllerAnimatedTransitioning
     
     func transitionDuration(transitionContext: UIViewControllerContextTransitioning?) -> NSTimeInterval {
+
         return 0.6
     }
 
@@ -64,7 +67,7 @@ class RegisterPickSkillsSelectSkillsTransitionManager: NSObject, UIViewControlle
             animatingView.alpha = 1
         }
 
-        UIView.animateWithDuration(transitionDuration(transitionContext), delay: 0, options: [.AllowUserInteraction, .BeginFromCurrentState], animations: { () -> Void in
+        UIView.animateWithDuration(transitionDuration(transitionContext), delay: 0, options: [.AllowUserInteraction, .BeginFromCurrentState], animations: { [unowned self] in
             animatingView.frame = finalFrame
 
             if self.isPresentation {
@@ -73,7 +76,7 @@ class RegisterPickSkillsSelectSkillsTransitionManager: NSObject, UIViewControlle
                 animatingView.alpha = 0
             }
 
-        }, completion: { (finished) -> Void in
+        }, completion: { [unowned self] _ in
 
             if !self.isPresentation {
                 fromView?.removeFromSuperview()
@@ -82,5 +85,5 @@ class RegisterPickSkillsSelectSkillsTransitionManager: NSObject, UIViewControlle
             transitionContext.completeTransition(true)
         })
     }
-
 }
+

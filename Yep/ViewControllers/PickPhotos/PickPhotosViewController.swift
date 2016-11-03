@@ -8,57 +8,107 @@
 
 import UIKit
 import Photos
+import YepKit
 import Ruler
 
-class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChangeObserver {
+protocol ReturnPickedPhotosDelegate: class {
+    func returnSelectedImages(images: [UIImage], imageAssets: [PHAsset])
+}
 
-    var images: PHFetchResult!
+final class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChangeObserver {
+
+    var images: PHFetchResult? {
+        didSet {
+            collectionView?.reloadData()
+            guard let images = images, collectionView = collectionView else { return }
+            
+            collectionView.scrollToItemAtIndexPath(NSIndexPath(forItem: images.count - 1, inSection: 0), atScrollPosition: .CenteredVertically, animated: false)
+        }
+    }
+    var imagesDidFetch: Bool = false
     let imageManager = PHCachingImageManager()
-    var imageCacheController: ImageCacheController!
+    var imageCacheController: ImageCacheController?
 
+    weak var delegate: ReturnPickedPhotosDelegate?
+    var album: AlbumListController?
+    
     var pickedImageSet = Set<PHAsset>()
     var pickedImages = [PHAsset]()
     var completion: ((images: [UIImage], imageAssets: [PHAsset]) -> Void)?
     var imageLimit = 0
 
-    let photoCellID = "PhotoCell"
-
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        title = "\(NSLocalizedString("Pick Photos", comment: "")) (\(imageLimit)/4)"
-
-        let doneButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: "done:")
-        navigationItem.rightBarButtonItem = doneButton
+        title = "\(NSLocalizedString("Pick Photos", comment: "")) (\(imageLimit + pickedImages.count)/4)"
 
         collectionView?.backgroundColor = UIColor.whiteColor()
         collectionView?.alwaysBounceVertical = true
-        collectionView?.registerNib(UINib(nibName: photoCellID, bundle: nil), forCellWithReuseIdentifier: photoCellID)
+        automaticallyAdjustsScrollViewInsets = false
+
+        collectionView?.registerNibOf(PhotoCell)
 
         if let layout = collectionView?.collectionViewLayout as? UICollectionViewFlowLayout {
 
-            let width: CGFloat = Ruler.iPhoneHorizontal(77.5, 92.5, 101).value
+            let width: CGFloat = Ruler<CGFloat>.iPhoneVertical(77.5, 77.5, 92.5, 102).value
             let height = width
             layout.itemSize = CGSize(width: width, height: height)
 
-            let gap: CGFloat = Ruler.iPhoneHorizontal(2, 1, 2).value
+            let gap: CGFloat = Ruler<CGFloat>.iPhoneHorizontal(1, 1, 1).value
             layout.minimumInteritemSpacing = gap
             layout.minimumLineSpacing = gap
-            layout.sectionInset = UIEdgeInsets(top: gap, left: gap, bottom: gap, right: gap)
+            layout.sectionInset = UIEdgeInsets(top: gap + 64, left: gap, bottom: gap, right: gap)
         }
-
-        let options = PHFetchOptions()
-        options.sortDescriptors = [
-            NSSortDescriptor(key: "creationDate", ascending: false)
-        ]
-        images = PHAsset.fetchAssetsWithMediaType(.Image, options: options)
-        imageCacheController = ImageCacheController(imageManager: imageManager, images: images, preheatSize: 1)
-
+        
+        let backBarButtonItem = UIBarButtonItem(image: UIImage.yep_iconBack, style: .Plain, target: self, action: #selector(PickPhotosViewController.back(_:)))
+        navigationItem.leftBarButtonItem = backBarButtonItem
+        
+        let doneButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: #selector(PickPhotosViewController.done(_:)))
+        navigationItem.rightBarButtonItem = doneButton
+        
+        if !imagesDidFetch {
+            let options = PHFetchOptions()
+            options.sortDescriptors = [
+                NSSortDescriptor(key: "creationDate", ascending: true)
+            ]
+            images = PHAsset.fetchAssetsWithMediaType(.Image, options: options)
+        }
+        
         PHPhotoLibrary.sharedPhotoLibrary().registerChangeObserver(self)
+        
+        
+        guard var vcStack = navigationController?.viewControllers else { return }
+        if !vcStack.isEmpty {
+            if !(vcStack[1] is AlbumListController) {
+                album = AlbumListController()
+                vcStack.insert(self.album!, atIndex: 1)
+                navigationController?.setViewControllers(vcStack, animated: false)
+            } else {
+                album = vcStack[1] as? AlbumListController
+            }
+        }
+        
+        navigationController?.interactivePopGestureRecognizer?.delegate = self
     }
 
-    // MARK: Actions
 
+    override func viewDidAppear(animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        guard let images = images else { return }
+        
+        imageCacheController = ImageCacheController(imageManager: imageManager, images: images, preheatSize: 1)
+        
+        navigationController?.interactivePopGestureRecognizer?.enabled = true
+    }
+    
+    // MARK: Actions
+    
+    func back(sender: UIBarButtonItem) {
+        album?.imageLimit   = imageLimit
+        album?.pickedImages.appendContentsOf(pickedImages)
+        navigationController?.popViewControllerAnimated(true)
+    }
+    
     func done(sender: UIBarButtonItem) {
 
         var images = [UIImage]()
@@ -100,9 +150,21 @@ class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChange
                 }
             })
         }
-
-        completion?(images: images, imageAssets: pickedImageAssets)
-        navigationController?.popViewControllerAnimated(true)
+        
+        if let vcStack = navigationController?.viewControllers {
+            weak var destVC: NewFeedViewController?
+            for vc in vcStack {
+                if vc is NewFeedViewController {
+                    let vc = vc as! NewFeedViewController
+                    destVC = vc
+                    destVC?.returnSelectedImages(images, imageAssets: pickedImageAssets)
+                    break
+                }
+            }
+            if let destVC = destVC {
+                navigationController?.popToViewController(destVC, animated: true)
+            }
+        }
     }
 
     // MARK: UICollectionViewDataSource
@@ -112,12 +174,12 @@ class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChange
     }
 
     override func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return images.count
+        return images?.count ?? 0
     }
 
     override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
 
-        let cell = collectionView.dequeueReusableCellWithReuseIdentifier(photoCellID, forIndexPath: indexPath) as! PhotoCell
+        let cell: PhotoCell = collectionView.dequeueReusableCell(forIndexPath: indexPath)
         return cell
     }
 
@@ -126,7 +188,7 @@ class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChange
         if let cell = cell as? PhotoCell {
             cell.imageManager = imageManager
 
-            if let imageAsset = images[indexPath.item] as? PHAsset {
+            if let imageAsset = images?[indexPath.item] as? PHAsset {
                 cell.imageAsset = imageAsset
                 cell.photoPickedImageView.hidden = !pickedImageSet.contains(imageAsset)
             }
@@ -135,7 +197,7 @@ class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChange
 
     override func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
         
-        if let imageAsset = images[indexPath.item] as? PHAsset {
+        if let imageAsset = images?[indexPath.item] as? PHAsset {
             if pickedImageSet.contains(imageAsset) {
                 pickedImageSet.remove(imageAsset)
                 if let index = pickedImages.indexOf(imageAsset) {
@@ -145,8 +207,10 @@ class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChange
                 if pickedImageSet.count + imageLimit == 4 {
                     return
                 }
-                pickedImageSet.insert(imageAsset)
-                pickedImages.append(imageAsset)
+                if !pickedImageSet.contains(imageAsset) {
+                    pickedImageSet.insert(imageAsset)
+                    pickedImages.append(imageAsset)
+                }
             }
             title = "\(NSLocalizedString("Pick Photos", comment: "")) (\(pickedImageSet.count + imageLimit)/4)"
             let cell = collectionView.cellForItemAtIndexPath(indexPath) as! PhotoCell
@@ -154,25 +218,27 @@ class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChange
         }
     }
 
+    /*
     // MARK: - ScrollViewDelegate
 
     override func scrollViewDidScroll(scrollView: UIScrollView) {
 
         let indexPaths = collectionView?.indexPathsForVisibleItems()
-        imageCacheController.updateVisibleCells(indexPaths as [NSIndexPath]!)
+        imageCacheController?.updateVisibleCells(indexPaths as [NSIndexPath]!)
     }
-
+    */
+    
     // MARK: - PHPhotoLibraryChangeObserver
 
     func photoLibraryDidChange(changeInstance: PHChange) {
 
-        guard let changeDetails = changeInstance.changeDetailsForFetchResult(images) else {
+        guard let changeDetails = changeInstance.changeDetailsForFetchResult(images!) else {
             return
         }
 
         self.images = changeDetails.fetchResultAfterChanges
 
-        dispatch_async(dispatch_get_main_queue()) {
+        SafeDispatch.async {
             // Loop through the visible cell indices
             guard let
                 indexPaths = self.collectionView?.indexPathsForVisibleItems(),
@@ -190,3 +256,17 @@ class PickPhotosViewController: UICollectionViewController, PHPhotoLibraryChange
     }
 }
 
+extension PickPhotosViewController: UIGestureRecognizerDelegate {
+    
+    func gestureRecognizer(gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWithGestureRecognizer otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+    
+    func gestureRecognizer(gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailByGestureRecognizer otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        if gestureRecognizer == navigationController?.interactivePopGestureRecognizer {
+            return true
+        }
+        return false
+    }
+    
+}

@@ -7,26 +7,54 @@
 //
 
 import UIKit
-import AddressBook
+import YepKit
 import Proposer
 
-class AddFriendsViewController: SegueViewController {
+final class AddFriendsViewController: SegueViewController {
 
-    @IBOutlet private weak var addFriendsTableView: UITableView!
+    @IBOutlet private weak var addFriendsTableView: UITableView! {
+        didSet {
+            addFriendsTableView.rowHeight = 60
 
-    private let addFriendSearchCellIdentifier = "AddFriendSearchCell"
-    private let addFriendMoreCellIdentifier = "AddFriendMoreCell"
-    
+            addFriendsTableView.registerNibOf(AddFriendSearchCell)
+            addFriendsTableView.registerNibOf(AddFriendMoreCell)
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        title = NSLocalizedString("Add Friends", comment: "")
+        title = NSLocalizedString("title.add_friends", comment: "")
+    }
 
+    private var isFirstAppear: Bool = true
 
-        addFriendsTableView.rowHeight = 60
+    override func viewDidAppear(animated: Bool) {
+        super.viewDidAppear(animated)
 
-        addFriendsTableView.registerNib(UINib(nibName: addFriendSearchCellIdentifier, bundle: nil), forCellReuseIdentifier: addFriendSearchCellIdentifier)
-        addFriendsTableView.registerNib(UINib(nibName: addFriendMoreCellIdentifier, bundle: nil), forCellReuseIdentifier: addFriendMoreCellIdentifier)
+        if isFirstAppear {
+            delay(0.2) { [weak self] in
+                 self?.tryShowKeyboard()
+            }
+        }
+
+        isFirstAppear = false
+    }
+
+    private var addFriendSearchCell: AddFriendSearchCell? {
+
+        let searchIndexPath = NSIndexPath(forRow: 0, inSection: Section.Search.rawValue)
+        return addFriendsTableView.cellForRowAtIndexPath(searchIndexPath) as? AddFriendSearchCell
+    }
+
+    private func tryShowKeyboard() {
+
+        addFriendSearchCell?.searchTextField.becomeFirstResponder()
+    }
+
+    private func tryHideKeyboard() {
+
+        addFriendSearchCell?.searchTextField.resignFirstResponder()
     }
 
     // MARK: Navigation
@@ -46,23 +74,11 @@ extension AddFriendsViewController: UITableViewDataSource, UITableViewDelegate {
     private enum Section: Int {
         case Search = 0
         case More
-
-        static var caseCount: Int {
-            var max: Int = 0
-            while let _ = self.init(rawValue: ++max) {}
-            return max
-        }
     }
 
     private enum More: Int, CustomStringConvertible {
         case Contacts
         //case FaceToFace
-
-        static var caseCount: Int {
-            var max: Int = 0
-            while let _ = self.init(rawValue: ++max) {}
-            return max
-        }
 
         var description: String {
             switch self {
@@ -77,7 +93,7 @@ extension AddFriendsViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-        return Section.caseCount
+        return 2
     }
 
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -87,7 +103,7 @@ extension AddFriendsViewController: UITableViewDataSource, UITableViewDelegate {
             return 1
 
         case Section.More.rawValue:
-            return More.caseCount
+            return 1
 
         default:
             return 0
@@ -98,16 +114,15 @@ extension AddFriendsViewController: UITableViewDataSource, UITableViewDelegate {
         switch indexPath.section {
 
         case Section.Search.rawValue:
-            let cell = tableView.dequeueReusableCellWithIdentifier(addFriendSearchCellIdentifier) as! AddFriendSearchCell
+            let cell: AddFriendSearchCell = tableView.dequeueReusableCell()
 
             cell.searchTextField.returnKeyType = .Search
             cell.searchTextField.delegate = self
-            cell.searchTextField.becomeFirstResponder()
 
             return cell
 
         case Section.More.rawValue:
-            let cell = tableView.dequeueReusableCellWithIdentifier(addFriendMoreCellIdentifier) as! AddFriendMoreCell
+            let cell: AddFriendMoreCell = tableView.dequeueReusableCell()
 
             cell.annotationLabel.text = More(rawValue: indexPath.row)?.description
 
@@ -123,6 +138,8 @@ extension AddFriendsViewController: UITableViewDataSource, UITableViewDelegate {
         defer {
             tableView.deselectRowAtIndexPath(indexPath, animated: true)
         }
+
+        tryHideKeyboard()
 
         if indexPath.section == Section.More.rawValue {
 

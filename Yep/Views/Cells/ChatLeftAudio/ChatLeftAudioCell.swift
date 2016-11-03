@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import YepKit
 
-class ChatLeftAudioCell: ChatBaseCell {
+final class ChatLeftAudioCell: ChatBaseCell {
 
     var message: Message?
 
@@ -22,9 +23,9 @@ class ChatLeftAudioCell: ChatBaseCell {
         willSet {
             if newValue != playing {
                 if newValue {
-                    playButton.setImage(UIImage(named: "icon_pause"), forState: .Normal)
+                    playButton.setImage(UIImage.yep_iconPause, forState: .Normal)
                 } else {
-                    playButton.setImage(UIImage(named: "icon_play"), forState: .Normal)
+                    playButton.setImage(UIImage.yep_iconPlay, forState: .Normal)
                 }
             }
         }
@@ -36,7 +37,7 @@ class ChatLeftAudioCell: ChatBaseCell {
     }()
 
     lazy var bubbleImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "left_tail_bubble"))
+        let imageView = UIImageView(image: UIImage.yep_leftTailBubble)
         imageView.tintColor = UIColor.leftBubbleTintColor()
         return imageView
     }()
@@ -44,6 +45,7 @@ class ChatLeftAudioCell: ChatBaseCell {
     lazy var sampleView: SampleView = {
         let view = SampleView()
         view.sampleColor = UIColor.leftWaveColor()
+        view.userInteractionEnabled = false
         return view
     }()
 
@@ -56,7 +58,7 @@ class ChatLeftAudioCell: ChatBaseCell {
 
     lazy var playButton: UIButton = {
         let button = UIButton()
-        button.setImage(UIImage(named: "icon_play"), forState: .Normal)
+        button.setImage(UIImage.yep_iconPlay, forState: .Normal)
 
         button.userInteractionEnabled = false
         button.tintColor = UIColor.darkGrayColor()
@@ -113,12 +115,13 @@ class ChatLeftAudioCell: ChatBaseCell {
         audioContainerView.addSubview(sampleView)
         audioContainerView.addSubview(audioDurationLabel)
 
-        UIView.performWithoutAnimation { [weak self] in
-            self?.makeUI()
+        UIView.setAnimationsEnabled(false); do {
+            makeUI()
         }
+        UIView.setAnimationsEnabled(true)
 
         bubbleImageView.userInteractionEnabled = true
-        let tap = UITapGestureRecognizer(target: self, action: "tapMediaView")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(ChatLeftAudioCell.tapMediaView))
         bubbleImageView.addGestureRecognizer(tap)
 
         prepareForMenuAction = { otherGesturesEnabled in
@@ -134,7 +137,7 @@ class ChatLeftAudioCell: ChatBaseCell {
         audioBubbleTapAction?()
     }
     
-    func configureWithMessage(message: Message, audioPlayedDuration: Double, audioBubbleTapAction: AudioBubbleTapAction?, collectionView: UICollectionView, indexPath: NSIndexPath) {
+    func configureWithMessage(message: Message, audioPlayedDuration: Double, audioBubbleTapAction: AudioBubbleTapAction?) {
 
         self.message = message
         self.user = message.fromFriend
@@ -144,14 +147,15 @@ class ChatLeftAudioCell: ChatBaseCell {
         self.audioPlayedDuration = audioPlayedDuration
         
         YepDownloader.downloadAttachmentsOfMessage(message, reportProgress: { [weak self] progress, _ in
-            dispatch_async(dispatch_get_main_queue()) {
+            SafeDispatch.async {
                 self?.loadingWithProgress(progress)
             }
         })
 
-        UIView.performWithoutAnimation { [weak self] in
-            self?.makeUI()
+        UIView.setAnimationsEnabled(false); do {
+            makeUI()
         }
+        UIView.setAnimationsEnabled(true)
 
         if let sender = message.fromFriend {
             let userAvatar = UserAvatar(userID: sender.userID, avatarURLString: sender.avatarURLString, avatarStyle: nanoAvatarStyle)
@@ -164,9 +168,10 @@ class ChatLeftAudioCell: ChatBaseCell {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        UIView.performWithoutAnimation { [weak self] in
-            self?.updateAudioInfoViews()
+        UIView.setAnimationsEnabled(false); do {
+            updateAudioInfoViews()
         }
+        UIView.setAnimationsEnabled(true)
     }
 
     func updateAudioInfoViews() {
@@ -232,13 +237,16 @@ class ChatLeftAudioCell: ChatBaseCell {
     private func configureNameLabel() {
 
         if inGroup {
-            nameLabel.text = user?.chatCellCompositedName
+            UIView.setAnimationsEnabled(false); do {
+                nameLabel.text = user?.compositedName
 
-            let height = YepConfig.ChatCell.nameLabelHeightForGroup
-            let x = CGRectGetMaxX(avatarImageView.frame) + YepConfig.chatCellGapBetweenTextContentLabelAndAvatar()
-            let y = audioContainerView.frame.origin.y - height
-            let width = contentView.bounds.width - x - 10
-            nameLabel.frame = CGRect(x: x, y: y, width: width, height: height)
+                let height = YepConfig.ChatCell.nameLabelHeightForGroup
+                let x = CGRectGetMaxX(avatarImageView.frame) + YepConfig.chatCellGapBetweenTextContentLabelAndAvatar()
+                let y = audioContainerView.frame.origin.y - height
+                let width = contentView.bounds.width - x - 10
+                nameLabel.frame = CGRect(x: x, y: y, width: width, height: height)
+            }
+            UIView.setAnimationsEnabled(true)
         }
     }
 }

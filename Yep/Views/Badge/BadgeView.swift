@@ -9,7 +9,7 @@
 import UIKit
 
 //@IBDesignable
-class BadgeView: UIView {
+final class BadgeView: UIView {
 
     enum Badge: String {
         case Palette = "palette"
@@ -76,7 +76,7 @@ class BadgeView: UIView {
         }
 
         var image: UIImage? {
-            return UIImage(named: "badge_" + self.rawValue)
+            return UIImage.yep_badgeWithName(self.rawValue)
         }
     }
 
@@ -90,10 +90,10 @@ class BadgeView: UIView {
 
     var enabled: Bool = false {
         willSet {
-            UIView.animateWithDuration(0.1, delay: 0.0, options: .CurveEaseInOut, animations: { _ in
-                self.badgeImageView.tintColor = newValue ? UIColor.whiteColor() : self.badge.color
-            }, completion: { finished in
-            })
+            UIView.animateWithDuration(0.1, delay: 0.0, options: .CurveEaseInOut, animations: { [weak self] _ in
+                guard let strongSelf = self else { return }
+                strongSelf.badgeImageView.tintColor = newValue ? UIColor.whiteColor() : strongSelf.badge.color
+            }, completion: nil)
         }
     }
 
@@ -109,7 +109,7 @@ class BadgeView: UIView {
 
         makeUI()
 
-        let tap = UITapGestureRecognizer(target: self, action: "tap")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(BadgeView.tap))
         addGestureRecognizer(tap)
     }
 

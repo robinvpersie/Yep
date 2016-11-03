@@ -9,7 +9,7 @@
 import UIKit
 import Ruler
 
-class InfoView: UIView {
+final class InfoView: UIView {
 
     var info: String?
 
@@ -45,12 +45,12 @@ class InfoView: UIView {
 
         addSubview(label)
 
-        let views = [
+        let views: [String: AnyObject] = [
             "label": label
         ]
 
-        let constraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|-margin-[label]-margin-|", options: NSLayoutFormatOptions(rawValue: 0), metrics: ["margin": Ruler.iPhoneHorizontal(20, 40, 40).value], views: views)
-        let constraintsV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[label]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
+        let constraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|-margin-[label]-margin-|", options: [], metrics: ["margin": Ruler.iPhoneHorizontal(20, 40, 40).value], views: views)
+        let constraintsV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[label]|", options: [], metrics: nil, views: views)
 
         NSLayoutConstraint.activateConstraints(constraintsH)
         NSLayoutConstraint.activateConstraints(constraintsV)

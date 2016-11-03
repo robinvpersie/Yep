@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import YepKit
 
-class FeedURLContainerView: UIView {
+final class FeedURLContainerView: UIView {
 
     var tapAction: (() -> Void)?
 
@@ -16,9 +17,9 @@ class FeedURLContainerView: UIView {
     var directionLeading = true { // set before compressionMode
         didSet {
             if directionLeading {
-                backgroundImageView.image = UIImage(named: "url_container_left_background")
+                backgroundImageView.image = UIImage.yep_urlContainerLeftBackground
             } else {
-                backgroundImageView.image = UIImage(named: "url_container_right_background")
+                backgroundImageView.image = UIImage.yep_urlContainerRightBackground
             }
         }
     }
@@ -34,7 +35,7 @@ class FeedURLContainerView: UIView {
     
     lazy var backgroundImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "url_container_left_background")
+        imageView.image = UIImage.yep_urlContainerLeftBackground
         return imageView
     }()
 
@@ -70,7 +71,7 @@ class FeedURLContainerView: UIView {
     override func didMoveToSuperview() {
         super.didMoveToSuperview()
 
-        let tap = UITapGestureRecognizer(target: self, action: "tap:")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(FeedURLContainerView.tap(_:)))
         addGestureRecognizer(tap)
     }
 
@@ -93,7 +94,7 @@ class FeedURLContainerView: UIView {
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         thumbnailImageView.translatesAutoresizingMaskIntoConstraints = false
 
-        let views = [
+        let views: [String: AnyObject] = [
             "backgroundImageView": backgroundImageView,
             "siteNameLabel": siteNameLabel,
             "titleLabel": titleLabel,
@@ -114,7 +115,7 @@ class FeedURLContainerView: UIView {
         do {
             let constraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|-[siteNameLabel]-|", options: [], metrics: nil, views: views)
 
-            let metrics = [
+            let metrics: [String: AnyObject] = [
                 "top": compressionMode ? 4 : 8,
                 "gap": compressionMode ? 4 : 8,
                 "bottom": compressionMode ? 4 : 8,
@@ -126,7 +127,7 @@ class FeedURLContainerView: UIView {
         }
 
         do {
-            let metrics = [
+            let metrics: [String: AnyObject] = [
                 "imageSize": compressionMode ? 35 : 40,
             ]
 

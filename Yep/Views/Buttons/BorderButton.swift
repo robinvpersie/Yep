@@ -9,7 +9,7 @@
 import UIKit
 
 @IBDesignable
-class BorderButton: UIButton {
+final class BorderButton: UIButton {
 
     @IBInspectable var cornerRadius: CGFloat = 6
     @IBInspectable var borderColor: UIColor = UIColor.yepTintColor()
@@ -35,7 +35,8 @@ class BorderButton: UIButton {
     }
 
     lazy var accessoryImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "icon_accessory_mini"))
+        let image = UIImage.yep_iconAccessoryMini
+        let imageView = UIImageView(image: image)
         return imageView
     }()
 

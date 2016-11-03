@@ -8,10 +8,16 @@
 
 import UIKit
 import MapKit
+import YepKit
 
-private let screenWidth: CGFloat = UIScreen.mainScreen().bounds.width
+final class FeedLocationCell: FeedBasicCell {
 
-class FeedLocationCell: FeedBasicCell {
+    override class func heightOfFeed(feed: DiscoveredFeed) -> CGFloat {
+
+        let height = super.heightOfFeed(feed) + (110 + 15)
+
+        return ceil(height)
+    }
 
     var tapLocationAction: ((locationName: String, locationCoordinate: CLLocationCoordinate2D) -> Void)?
     
@@ -23,12 +29,12 @@ class FeedLocationCell: FeedBasicCell {
 
     lazy var socialWorkBorderImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "social_work_border")
+        imageView.image = UIImage.yep_socialWorkBorder
         return imageView
     }()
 
     lazy var halfMaskImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "social_media_image_mask"))
+        let imageView = UIImageView(image: UIImage.yep_socialMediaImageMask)
         return imageView
     }()
     
@@ -49,26 +55,9 @@ class FeedLocationCell: FeedBasicCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
+    override func configureWithFeed(feed: DiscoveredFeed, layout: FeedCellLayout, needShowSkill: Bool) {
 
-        // Configure the view for the selected state
-    }
-
-    override class func heightOfFeed(feed: DiscoveredFeed) -> CGFloat {
-
-        let height = super.heightOfFeed(feed) + (110 + 15)
-
-        return ceil(height)
-    }
-
-    override func configureWithFeed(feed: DiscoveredFeed, layoutCache: FeedCellLayout.Cache, needShowSkill: Bool) {
-
-        var _newLayout: FeedCellLayout?
-        super.configureWithFeed(feed, layoutCache: (layout: layoutCache.layout, update: { newLayout in
-            _newLayout = newLayout
-        }), needShowSkill: needShowSkill)
-
+        super.configureWithFeed(feed, layout: layout, needShowSkill: needShowSkill)
 
         if let attachment = feed.attachment {
             if case let .Location(locationInfo) = attachment {
@@ -101,29 +90,14 @@ class FeedLocationCell: FeedBasicCell {
             }
         }
 
-        if let locationLayout = layoutCache.layout?.locationLayout {
-            locationContainerView.frame = locationLayout.locationContainerViewFrame
-            socialWorkBorderImageView.frame = locationContainerView.frame
+        let locationLayout = layout.locationLayout!
+        locationContainerView.frame = locationLayout.locationContainerViewFrame
+        socialWorkBorderImageView.frame = locationContainerView.frame
 
-        } else {
-            let y = messageTextView.frame.origin.y + messageTextView.frame.height + 15
-            let height: CGFloat = leftBottomLabel.frame.origin.y - y - 15
-            locationContainerView.frame = CGRect(x: 65, y: y, width: screenWidth - 65 - 60, height: height)
-            socialWorkBorderImageView.frame = locationContainerView.frame
-        }
         locationContainerView.layoutIfNeeded()
 
         halfMaskImageView.frame = locationContainerView.mapImageView.bounds
         locationContainerView.mapImageView.maskView = halfMaskImageView
-
-        if layoutCache.layout == nil {
-
-            let locationLayout = FeedCellLayout.LocationLayout(locationContainerViewFrame: locationContainerView.frame)
-            _newLayout?.locationLayout = locationLayout
-
-            if let newLayout = _newLayout {
-                layoutCache.update(layout: newLayout)
-            }
-        }
     }
 }
+

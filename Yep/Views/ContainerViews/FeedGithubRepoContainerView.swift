@@ -8,19 +8,19 @@
 
 import UIKit
 
-class FeedGithubRepoContainerView: UIView {
+final class FeedGithubRepoContainerView: UIView {
 
     var tapAction: (() -> Void)?
 
     lazy var backgroundImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "feed_container_background")
+        imageView.image = UIImage.yep_feedContainerBackground
         return imageView
     }()
 
     lazy var iconImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "icon_repo")
+        imageView.image = UIImage.yep_iconRepo
         imageView.tintColor = UIColor.yepIconImageViewTintColor()
         return imageView
     }()
@@ -40,9 +40,10 @@ class FeedGithubRepoContainerView: UIView {
         return label
     }()
 
+    var needShowAccessoryImageView: Bool = true
     lazy var accessoryImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = UIImage(named: "icon_accessory_mini")
+        let image = UIImage.yep_iconAccessoryMini
+        let imageView = UIImageView(image: image)
         imageView.tintColor = UIColor.yepCellAccessoryImageViewTintColor()
         return imageView
     }()
@@ -52,7 +53,7 @@ class FeedGithubRepoContainerView: UIView {
 
         makeUI()
 
-        let tap = UITapGestureRecognizer(target: self, action: "tap:")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(FeedGithubRepoContainerView.tap(_:)))
         addGestureRecognizer(tap)
     }
 
@@ -73,7 +74,7 @@ class FeedGithubRepoContainerView: UIView {
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         accessoryImageView.translatesAutoresizingMaskIntoConstraints = false
 
-        let views = [
+        let views: [String: AnyObject] = [
             "backgroundImageView": backgroundImageView,
             "iconImageView": iconImageView,
             "nameLabel": nameLabel,
@@ -86,7 +87,13 @@ class FeedGithubRepoContainerView: UIView {
         NSLayoutConstraint.activateConstraints(backgroundH)
         NSLayoutConstraint.activateConstraints(backgroundV)
 
-        let constraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|-10-[iconImageView(16)]-10-[nameLabel]-5-[accessoryImageView(8)]-10-|", options: [], metrics: nil, views: views)
+        let constraintsH: [NSLayoutConstraint]
+        if needShowAccessoryImageView {
+            constraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|-10-[iconImageView(16)]-10-[nameLabel]-5-[accessoryImageView(8)]-10-|", options: [], metrics: nil, views: views)
+        } else {
+            accessoryImageView.hidden = true
+            constraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|-10-[iconImageView(16)]-10-[nameLabel]-10-|", options: [], metrics: nil, views: views)
+        }
 
         iconImageView.setContentHuggingPriority(UILayoutPriorityDefaultHigh, forAxis: .Horizontal)
         accessoryImageView.setContentHuggingPriority(UILayoutPriorityDefaultHigh, forAxis: .Horizontal)

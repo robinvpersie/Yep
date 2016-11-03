@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import YepKit
 
-class FriendRequestView: UIView {
+final class FriendRequestView: UIView {
 
     static let height: CGFloat = 60
 
@@ -97,17 +98,17 @@ class FriendRequestView: UIView {
 
     lazy var addButton: UIButton = {
         let button = self.baseButton()
-        button.setTitle(NSLocalizedString("Add", comment: ""), forState: .Normal)
+        button.setTitle(NSLocalizedString("button.add", comment: ""), forState: .Normal)
         button.backgroundColor = UIColor.yepTintColor()
-        button.addTarget(self, action: "tryAddAction", forControlEvents: .TouchUpInside)
+        button.addTarget(self, action: #selector(FriendRequestView.tryAddAction), forControlEvents: .TouchUpInside)
         return button
     }()
 
     lazy var acceptButton: UIButton = {
         let button = self.baseButton()
-        button.setTitle(NSLocalizedString("Accept", comment: ""), forState: .Normal)
+        button.setTitle(NSLocalizedString("button.accept", comment: ""), forState: .Normal)
         button.backgroundColor = UIColor.yepTintColor()
-        button.addTarget(self, action: "tryAcceptAction", forControlEvents: .TouchUpInside)
+        button.addTarget(self, action: #selector(FriendRequestView.tryAcceptAction), forControlEvents: .TouchUpInside)
         return button
     }()
 
@@ -116,7 +117,7 @@ class FriendRequestView: UIView {
         button.setTitle(NSLocalizedString("Reject", comment: ""), forState: .Normal)
         button.backgroundColor = UIColor(red: 230/255.0, green: 230/255.0, blue: 230/255.0, alpha: 1.0)
         button.setTitleColor(UIColor.darkGrayColor(), forState: UIControlState.Normal)
-        button.addTarget(self, action: "tryRejectAction", forControlEvents: .TouchUpInside)
+        button.addTarget(self, action: #selector(FriendRequestView.tryRejectAction), forControlEvents: .TouchUpInside)
         return button
     }()
 
@@ -191,23 +192,23 @@ class FriendRequestView: UIView {
         stateLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(stateLabel)
 
-        let viewsDictionary = [
+        let viewsDictionary: [String: AnyObject] = [
             "visualEffectView": visualEffectView,
             "containerView": containerView,
         ]
 
         // visualEffectView
 
-        let visualEffectViewConstraintH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[visualEffectView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
-        let visualEffectViewConstraintV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[visualEffectView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
+        let visualEffectViewConstraintH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[visualEffectView]|", options: [], metrics: nil, views: viewsDictionary)
+        let visualEffectViewConstraintV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[visualEffectView]|", options: [], metrics: nil, views: viewsDictionary)
 
         NSLayoutConstraint.activateConstraints(visualEffectViewConstraintH)
         NSLayoutConstraint.activateConstraints(visualEffectViewConstraintV)
 
         // containerView
 
-        let containerViewConstraintH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[containerView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
-        let containerViewConstraintV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[containerView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
+        let containerViewConstraintH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[containerView]|", options: [], metrics: nil, views: viewsDictionary)
+        let containerViewConstraintV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[containerView]|", options: [], metrics: nil, views: viewsDictionary)
 
         NSLayoutConstraint.activateConstraints(containerViewConstraintH)
         NSLayoutConstraint.activateConstraints(containerViewConstraintV)
@@ -243,6 +244,7 @@ class FriendRequestView: UIView {
             // addButton
 
             addButton.translatesAutoresizingMaskIntoConstraints = false
+            addButton.setContentCompressionResistancePriority(UILayoutPriorityRequired, forAxis: .Horizontal)
             containerView.addSubview(addButton)
 
             let addButtonTrailing = NSLayoutConstraint(item: addButton, attribute: .Trailing, relatedBy: .Equal, toItem: containerView, attribute: .Trailing, multiplier: 1, constant: -YepConfig.chatCellGapBetweenWallAndAvatar())
@@ -262,6 +264,7 @@ class FriendRequestView: UIView {
             // acceptButton
 
             acceptButton.translatesAutoresizingMaskIntoConstraints = false
+            acceptButton.setContentCompressionResistancePriority(UILayoutPriorityRequired, forAxis: .Horizontal)
             containerView.addSubview(acceptButton)
 
             let acceptButtonTrailing = NSLayoutConstraint(item: acceptButton, attribute: .Trailing, relatedBy: .Equal, toItem: containerView, attribute: .Trailing, multiplier: 1, constant: -YepConfig.chatCellGapBetweenWallAndAvatar())
@@ -272,6 +275,7 @@ class FriendRequestView: UIView {
             // rejectButton
 
             rejectButton.translatesAutoresizingMaskIntoConstraints = false
+            rejectButton.setContentCompressionResistancePriority(UILayoutPriorityRequired, forAxis: .Horizontal)
             containerView.addSubview(rejectButton)
 
             let rejectButtonRight = NSLayoutConstraint(item: rejectButton, attribute: .Right, relatedBy: .Equal, toItem: acceptButton, attribute: .Left, multiplier: 1, constant: -8)

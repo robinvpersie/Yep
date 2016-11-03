@@ -7,10 +7,18 @@
 //
 
 import UIKit
+import YepKit
 
-class FeedBiggerImageCell: FeedBasicCell {
+final class FeedBiggerImageCell: FeedBasicCell {
 
-    var tapMediaAction: FeedTapMediaAction?
+    override class func heightOfFeed(feed: DiscoveredFeed) -> CGFloat {
+
+        let height = super.heightOfFeed(feed) + YepConfig.FeedBiggerImageCell.imageSize.height + 15
+
+        return ceil(height)
+    }
+
+    var tapImagesAction: FeedTapImagesAction?
 
     lazy var biggerImageView: UIImageView = {
         let imageView = UIImageView()
@@ -21,19 +29,12 @@ class FeedBiggerImageCell: FeedBasicCell {
         imageView.layer.borderWidth = 1.0 / UIScreen.mainScreen().scale
 
         imageView.userInteractionEnabled = true
-        let tap = UITapGestureRecognizer(target: self, action: "tap:")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(FeedBiggerImageCell.tap(_:)))
         imageView.addGestureRecognizer(tap)
 
         return imageView
     }()
 
-    override class func heightOfFeed(feed: DiscoveredFeed) -> CGFloat {
-
-        let height = super.heightOfFeed(feed) + YepConfig.FeedBiggerImageCell.imageSize.height + 15
-
-        return ceil(height)
-    }
-    
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
 
@@ -44,33 +45,18 @@ class FeedBiggerImageCell: FeedBasicCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
-    }
-
     override func prepareForReuse() {
         super.prepareForReuse()
 
         biggerImageView.image = nil
     }
 
-    override func configureWithFeed(feed: DiscoveredFeed, layoutCache: FeedCellLayout.Cache, needShowSkill: Bool) {
+    override func configureWithFeed(feed: DiscoveredFeed, layout: FeedCellLayout, needShowSkill: Bool) {
 
-        var _newLayout: FeedCellLayout?
-        super.configureWithFeed(feed, layoutCache: (layout: layoutCache.layout, update: { newLayout in
-            _newLayout = newLayout
-        }), needShowSkill: needShowSkill)
-
-        if let biggerImageLayout = layoutCache.layout?.biggerImageLayout {
-            biggerImageView.frame = biggerImageLayout.biggerImageViewFrame
-
-        } else {
-            biggerImageView.frame.origin.y = messageTextView.frame.origin.y + messageTextView.frame.height + 15
-        }
+        super.configureWithFeed(feed, layout: layout, needShowSkill: needShowSkill)
 
         if let onlyAttachment = feed.imageAttachments?.first {
+
             if onlyAttachment.isTemporary {
                 biggerImageView.image = onlyAttachment.image
 
@@ -80,15 +66,8 @@ class FeedBiggerImageCell: FeedBasicCell {
             }
         }
 
-        if layoutCache.layout == nil {
-
-            let biggerImageLayout = FeedCellLayout.BiggerImageLayout(biggerImageViewFrame: biggerImageView.frame)
-            _newLayout?.biggerImageLayout = biggerImageLayout
-
-            if let newLayout = _newLayout {
-                layoutCache.update(layout: newLayout)
-            }
-        }
+        let biggerImageLayout = layout.biggerImageLayout!
+        biggerImageView.frame = biggerImageLayout.biggerImageViewFrame
     }
 
     @objc private func tap(sender: UITapGestureRecognizer) {
@@ -98,7 +77,7 @@ class FeedBiggerImageCell: FeedBasicCell {
         }
 
         if let attachments = feed?.imageAttachments {
-            tapMediaAction?(transitionView: biggerImageView, image: biggerImageView.image, attachments: attachments, index: 0)
+            tapImagesAction?(transitionViews: [biggerImageView], attachments: attachments, image: biggerImageView.image, index: 0)
         }
     }
 }

@@ -8,7 +8,7 @@
 
 import UIKit
 
-class WelcomeViewController: UIViewController {
+final class WelcomeViewController: UIViewController {
 
     @IBOutlet private weak var logoLabel: UILabel!
     @IBOutlet private weak var sloganLabel: UILabel!
@@ -22,12 +22,12 @@ class WelcomeViewController: UIViewController {
         super.viewDidLoad()
 
         logoLabel.text = NSLocalizedString("Yep", comment: "")
-        sloganLabel.text = NSLocalizedString("Meet with genius", comment: "")
+        sloganLabel.text = NSLocalizedString("Meet Genius", comment: "")
 
         registerButton.setTitle(NSLocalizedString("Sign Up", comment: ""), forState: .Normal)
         loginButton.setTitle(NSLocalizedString("Login", comment: ""), forState: .Normal)
 
-        companyLabel.text = NSLocalizedString("Catch Inc.", comment: "")
+        companyLabel.text = "Catch Inc."
     }
 
     override func viewWillAppear(animated: Bool) {

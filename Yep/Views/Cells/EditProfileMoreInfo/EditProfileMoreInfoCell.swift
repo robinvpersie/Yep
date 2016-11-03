@@ -8,13 +8,14 @@
 
 import UIKit
 
-class EditProfileMoreInfoCell: UITableViewCell {
+final class EditProfileMoreInfoCell: UITableViewCell {
 
     @IBOutlet weak var annotationLabel: UILabel!
 
     @IBOutlet weak var infoTextView: UITextView!
 
-    var infoTextViewIsDirtyAction: (Bool -> Void)?
+    var infoTextViewBeginEditingAction: ((infoTextView: UITextView) -> Void)?
+    var infoTextViewIsDirtyAction: (() -> Void)?
     var infoTextViewDidEndEditingAction: (String -> Void)?
 
     override func awakeFromNib() {
@@ -22,36 +23,33 @@ class EditProfileMoreInfoCell: UITableViewCell {
 
         selectionStyle = .None
 
-        infoTextView.font = YepConfig.EditProfile.introFont
+        infoTextView.font = YepConfig.EditProfile.infoFont
+
+        infoTextView.autocapitalizationType = .None
+        infoTextView.autocorrectionType = .No
+        infoTextView.spellCheckingType = .No
+
         infoTextView.textContainer.lineFragmentPadding = 0
         infoTextView.textContainerInset = UIEdgeInsetsZero
+
         infoTextView.delegate = self
     }
-
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
-    }
-    
 }
+
+// MARK: - UITextViewDelegate
 
 extension EditProfileMoreInfoCell: UITextViewDelegate {
 
     func textViewShouldBeginEditing(textView: UITextView) -> Bool {
 
-        // 初次设置前，清空 placeholder
-        if YepUserDefaults.introduction.value == nil {
-            textView.text = ""
-        }
+        infoTextViewBeginEditingAction?(infoTextView: textView)
 
         return true
     }
 
     func textViewDidChange(textView: UITextView) {
 
-        let isDirty = NSString(string: textView.text).length > 0
-        infoTextViewIsDirtyAction?(isDirty)
+        infoTextViewIsDirtyAction?()
     }
 
     func textViewDidEndEditing(textView: UITextView) {
@@ -62,3 +60,4 @@ extension EditProfileMoreInfoCell: UITextViewDelegate {
         }
     }
 }
+

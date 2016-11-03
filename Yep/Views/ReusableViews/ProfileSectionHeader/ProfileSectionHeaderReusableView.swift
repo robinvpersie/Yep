@@ -8,7 +8,7 @@
 
 import UIKit
 
-class ProfileSectionHeaderReusableView: UICollectionReusableView {
+final class ProfileSectionHeaderReusableView: UICollectionReusableView {
 
     @IBOutlet weak var titleLabel: UILabel!
     @IBOutlet weak var titleLabelLeadingConstraint: NSLayoutConstraint!
@@ -26,7 +26,7 @@ class ProfileSectionHeaderReusableView: UICollectionReusableView {
         titleLabelLeadingConstraint.constant = YepConfig.Profile.leftEdgeInset
         accessoryImageViewTrailingConstraint.constant = YepConfig.Profile.leftEdgeInset
 
-        let tap = UITapGestureRecognizer(target: self, action: "tap")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(ProfileSectionHeaderReusableView.tap))
         addGestureRecognizer(tap)
     }
 

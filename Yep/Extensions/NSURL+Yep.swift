@@ -7,8 +7,7 @@
 //
 
 import Foundation
-
-private let yepHost = "soyep.com"
+import YepKit
 
 extension NSURL {
 
@@ -27,7 +26,7 @@ extension NSURL {
         return (allQueryItems as NSArray).filteredArrayUsingPredicate(predicate).first as? NSURLQueryItem
     }
     
-    func yep_matchSharedFeed(completion: DiscoveredFeed -> Void) -> Bool {
+    func yep_matchSharedFeed(completion: (feed: DiscoveredFeed?) -> Void) -> Bool {
 
         guard let host = host where host == yepHost else {
             return false
@@ -37,21 +36,25 @@ extension NSURL {
             return false
         }
 
-        if let first = pathComponents[safe: 1] where first == "groups" {
-            if let second = pathComponents[safe: 2] where second == "share" {
-                if let sharedToken = queryItemForKey("token")?.value {
-                    feedWithSharedToken(sharedToken, failureHandler: nil, completion: { feed in
-                        dispatch_async(dispatch_get_main_queue()) {
-                            completion(feed)
-                        }
-                    })
-
-                    return true
-                }
-            }
+        guard
+            let first = pathComponents[safe: 1] where first == "groups",
+            let second = pathComponents[safe: 2] where second == "share",
+            let sharedToken = queryItemForKey("token")?.value else {
+                return false
         }
 
-        return false
+        feedWithSharedToken(sharedToken, failureHandler: { reason, errorMessage in
+            SafeDispatch.async {
+                completion(feed: nil)
+            }
+
+        }, completion: { feed in
+            SafeDispatch.async {
+                completion(feed: feed)
+            }
+        })
+
+        return true
     }
 
     // make sure put it in last
@@ -70,7 +73,7 @@ extension NSURL {
 
             discoverUserByUsername(username, failureHandler: nil, completion: { discoveredUser in
 
-                dispatch_async(dispatch_get_main_queue()) {
+                SafeDispatch.async {
                     completion(discoveredUser)
                 }
             })
@@ -80,61 +83,40 @@ extension NSURL {
 
         return false
     }
+}
 
-    // iTunes
+extension NSURL {
 
-    var yep_iTunesArtworkID: String? {
+    var yep_isNetworkURL: Bool {
 
-        if let artworkID = queryItemForKey("i")?.value {
-            return artworkID
-
-        } else {
-            if let artworkID = lastPathComponent?.stringByReplacingOccurrencesOfString("id", withString: "") {
-                return artworkID
-            }
-        }
-
-        return nil
-    }
-
-    enum AppleOnlineStoreHost: String {
-        case iTunesLong = "itunes.apple.com"
-        case iTunesShort = "itun.es"
-        case AppStoreShort = "appsto.re"
-    }
-
-    var yep_isAppleiTunesURL: Bool {
-
-        guard let host = host, _ = AppleOnlineStoreHost(rawValue: host) else {
+        switch scheme {
+        case "http", "https":
+            return true
+        default:
             return false
         }
-
-        return true
     }
 
-    var yep_appleAllianceURL: NSURL {
+    var yep_validSchemeNetworkURL: NSURL? {
 
-        guard self.yep_isAppleiTunesURL else {
-            return self
-        }
+        if scheme.isEmpty {
 
-        guard let URLComponents = NSURLComponents(URL: self, resolvingAgainstBaseURL: false) else {
-            return self
-        }
+            guard let URLComponents = NSURLComponents(URL: self, resolvingAgainstBaseURL: false) else {
+                return nil
+            }
 
-        let queryItem = NSURLQueryItem(name: "at", value: "1010l9k7")
+            URLComponents.scheme = "http"
 
-        if URLComponents.queryItems == nil {
-            URLComponents.queryItems = [queryItem]
+            return URLComponents.URL
+
         } else {
-            URLComponents.queryItems?.append(queryItem)
-        }
+            if yep_isNetworkURL {
+                return self
 
-        guard let resultURL = URLComponents.URL else {
-            return self
+            } else {
+                return nil
+            }
         }
-
-        return resultURL
     }
 }
 

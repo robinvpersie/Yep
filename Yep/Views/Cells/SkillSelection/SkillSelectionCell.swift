@@ -8,7 +8,7 @@
 
 import UIKit
 
-class SkillSelectionCell: UICollectionViewCell {
+final class SkillSelectionCell: UICollectionViewCell {
 
     static let height: CGFloat = 35
 
@@ -27,17 +27,17 @@ class SkillSelectionCell: UICollectionViewCell {
             switch newValue {
 
             case .Unavailable:
-                backgroundImageView.image = UIImage(named: "skill_bubble_large_empty")
+                backgroundImageView.image = UIImage.yep_skillBubbleLargeEmpty
                 skillLabel.textColor = UIColor.yepTintColor()
                 contentView.alpha = 0.2
 
             case .Off:
-                backgroundImageView.image = UIImage(named: "skill_bubble_large_empty")
+                backgroundImageView.image = UIImage.yep_skillBubbleLargeEmpty
                 skillLabel.textColor = UIColor.yepTintColor()
                 contentView.alpha = 1
 
             case .On:
-                backgroundImageView.image = UIImage(named: "skill_bubble_large")
+                backgroundImageView.image = UIImage.yep_skillBubbleLarge
                 skillLabel.textColor = UIColor.whiteColor()
                 contentView.alpha = 1
             }

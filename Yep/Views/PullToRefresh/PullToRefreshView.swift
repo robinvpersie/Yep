@@ -15,7 +15,7 @@ protocol PullToRefreshViewDelegate: class {
 
 private let sceneHeight: CGFloat = 80
 
-class PullToRefreshView: UIView {
+final class PullToRefreshView: UIView {
     
     var refreshView: YepRefreshView!
 
@@ -37,7 +37,7 @@ class PullToRefreshView: UIView {
     var refreshTimeoutAction: (() -> Void)? {
         didSet {
             refreshTimeoutTimer?.invalidate()
-            refreshTimeoutTimer = NSTimer.scheduledTimerWithTimeInterval(5.0, target: self, selector: "refreshTimeout:", userInfo: nil, repeats: false)
+            refreshTimeoutTimer = NSTimer.scheduledTimerWithTimeInterval(5.0, target: self, selector: #selector(PullToRefreshView.refreshTimeout(_:)), userInfo: nil, repeats: false)
         }
     }
 
@@ -162,7 +162,7 @@ extension PullToRefreshView: UIScrollViewDelegate {
     }
 }
 
-class RefreshItem {
+final class RefreshItem {
 
     unowned var view: UIView
 

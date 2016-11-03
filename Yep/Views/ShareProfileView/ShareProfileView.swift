@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import YepKit
 
-class ShareProfileView: UIView {
+final class ShareProfileView: UIView {
 
     var progress: CGFloat = 0
     
@@ -25,7 +26,7 @@ class ShareProfileView: UIView {
         
         let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: frame.width, height: frame.height))
         
-        imageView.image = UIImage(named: "icon_share")
+        imageView.image = UIImage.yep_iconShare
         
         imageView.transform = CGAffineTransformScale(CGAffineTransformIdentity, 0.4, 0.4)
         

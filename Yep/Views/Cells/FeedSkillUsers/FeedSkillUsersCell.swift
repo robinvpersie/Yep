@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import YepKit
 
-class FeedSkillUsersCell: UITableViewCell {
+final class FeedSkillUsersCell: UITableViewCell {
 
     @IBOutlet weak var promptLabel: UILabel!
 
@@ -24,12 +25,6 @@ class FeedSkillUsersCell: UITableViewCell {
         promptLabel.text = NSLocalizedString("People with this skill", comment: "")
 
         accessoryImageView.tintColor = UIColor.yepCellAccessoryImageViewTintColor()
-    }
-
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
     }
 
     func configureWithFeeds(feeds: [DiscoveredFeed]) {

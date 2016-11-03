@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import YepKit
 
 let sendingAnimationName = "RotationOnStateAnimation"
 
@@ -15,7 +16,7 @@ class ChatRightBaseCell: ChatBaseCell {
     lazy var dotImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.frame = CGRect(x: 15, y: 0, width: 26, height: 26)
-        imageView.image = UIImage(named: "icon_dot_sending")
+        imageView.image = UIImage.yep_iconDotSending
         imageView.contentMode = .Center
         return imageView
     }()
@@ -31,7 +32,7 @@ class ChatRightBaseCell: ChatBaseCell {
             switch messageSendState {
 
             case MessageSendState.NotSend:
-                dotImageView.image = UIImage(named: "icon_dot_sending")
+                dotImageView.image = UIImage.yep_iconDotSending
                 dotImageView.hidden = false
                 
                 delay(0.1) { [weak self] in
@@ -41,7 +42,7 @@ class ChatRightBaseCell: ChatBaseCell {
                 }
 
             case MessageSendState.Successed:
-                dotImageView.image = UIImage(named: "icon_dot_unread")
+                dotImageView.image = UIImage.yep_iconDotUnread
                 dotImageView.hidden = false
 
                 removeSendingAnimation()
@@ -52,7 +53,7 @@ class ChatRightBaseCell: ChatBaseCell {
                 removeSendingAnimation()
 
             case MessageSendState.Failed:
-                dotImageView.image = UIImage(named: "icon_dot_failed")
+                dotImageView.image = UIImage.yep_iconDotFailed
                 dotImageView.hidden = false
 
                 removeSendingAnimation()
@@ -75,7 +76,7 @@ class ChatRightBaseCell: ChatBaseCell {
 
         contentView.addSubview(dotImageView)
 
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "tryUpdateMessageState", name: MessageNotification.MessageStateChanged, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(ChatRightBaseCell.tryUpdateMessageState), name: Config.Message.Notification.MessageStateChanged, object: nil)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -103,13 +104,13 @@ class ChatRightBaseCell: ChatBaseCell {
         animation.toValue = 2 * M_PI
         animation.duration = 1.0
         animation.repeatCount = MAXFLOAT
-        dispatch_async(dispatch_get_main_queue()) { [weak self] in
+        SafeDispatch.async { [weak self] in
             self?.dotImageView.layer.addAnimation(animation, forKey: sendingAnimationName)
         }
     }
 
     func removeSendingAnimation() {
-        dispatch_async(dispatch_get_main_queue()) { [weak self] in
+        SafeDispatch.async { [weak self] in
             self?.dotImageView.layer.removeAnimationForKey(sendingAnimationName)
         }
     }

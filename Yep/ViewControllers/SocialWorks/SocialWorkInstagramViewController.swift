@@ -7,9 +7,11 @@
 //
 
 import UIKit
+import YepKit
+import YepNetworking
 import MonkeyKing
 
-class SocialWorkInstagramViewController: BaseViewController {
+final class SocialWorkInstagramViewController: BaseViewController {
 
     var socialAccount: SocialAccount?
     var profileUser: ProfileUser?
@@ -19,13 +21,11 @@ class SocialWorkInstagramViewController: BaseViewController {
 
 
     private lazy var shareButton: UIBarButtonItem = {
-        let button = UIBarButtonItem(barButtonSystemItem: .Action, target: self, action: "share:")
+        let button = UIBarButtonItem(barButtonSystemItem: .Action, target: self, action: #selector(SocialWorkInstagramViewController.share(_:)))
         return button
         }()
 
     @IBOutlet private weak var instagramCollectionView: UICollectionView!
-
-    private let instagramMediaCellIdentifier = "InstagramMediaCell"
 
     private lazy var collectionViewWidth: CGFloat = {
         return CGRectGetWidth(self.instagramCollectionView.bounds)
@@ -60,7 +60,7 @@ class SocialWorkInstagramViewController: BaseViewController {
         shareButton.enabled = false
         navigationItem.rightBarButtonItem = shareButton
 
-        instagramCollectionView.registerNib(UINib(nibName: instagramMediaCellIdentifier, bundle: nil), forCellWithReuseIdentifier: instagramMediaCellIdentifier)
+        instagramCollectionView.registerNibOf(InstagramMediaCell)
 
         if let gestures = navigationController?.view.gestureRecognizers {
             for recognizer in gestures {
@@ -99,7 +99,7 @@ class SocialWorkInstagramViewController: BaseViewController {
                 }, completion: { instagramWork in
                     println("instagramWork: \(instagramWork.medias.count)")
 
-                    dispatch_async(dispatch_get_main_queue()) {
+                    SafeDispatch.async {
                         self.instagramMedias = instagramWork.medias
 
                         self.afterGetInstagramWork?(instagramWork)
@@ -112,7 +112,7 @@ class SocialWorkInstagramViewController: BaseViewController {
     // MARK: Actions
 
     private func updateInstagramCollectionView() {
-        dispatch_async(dispatch_get_main_queue()) {
+        SafeDispatch.async {
             self.instagramCollectionView.reloadData()
         }
     }
@@ -125,7 +125,7 @@ class SocialWorkInstagramViewController: BaseViewController {
 
             if let profileURL = NSURL(string: profileURLString) {
 
-                let title = String(format: NSLocalizedString("%@'s Instagram", comment: ""), firstMedia.username)
+                let title = String(format: NSLocalizedString("whosInstagram%@", comment: ""), firstMedia.username)
 
                 var thumbnail: UIImage?
                 if let socialAccount = socialAccount {
@@ -160,7 +160,7 @@ class SocialWorkInstagramViewController: BaseViewController {
                 )
 
                 let activityViewController = UIActivityViewController(activityItems: [profileURL], applicationActivities: [weChatSessionActivity, weChatTimelineActivity])
-
+                activityViewController.excludedActivityTypes = [UIActivityTypeMessage, UIActivityTypeMail]
                 presentViewController(activityViewController, animated: true, completion: nil)
             }
         }
@@ -179,7 +179,7 @@ extension SocialWorkInstagramViewController: UICollectionViewDataSource, UIColle
 
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
 
-        let cell = collectionView.dequeueReusableCellWithReuseIdentifier(instagramMediaCellIdentifier, forIndexPath: indexPath) as! InstagramMediaCell
+        let cell: InstagramMediaCell = collectionView.dequeueReusableCell(forIndexPath: indexPath)
 
         let media = instagramMedias[indexPath.item]
 

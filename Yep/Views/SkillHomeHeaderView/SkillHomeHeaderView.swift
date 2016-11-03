@@ -7,11 +7,12 @@
 //
 
 import UIKit
+import YepKit
 import Kingfisher
 
-class SkillHomeHeaderView: UIView {
+final class SkillHomeHeaderView: UIView {
 
-    var skillCategory: SkillCell.Skill.Category = .Art
+    var skillCategory: SkillCellSkill.Category = .Art
     var skillCoverURLString: String? {
         willSet {
 //            if let coverURLString = newValue, URL = NSURL(string: coverURLString) {
@@ -64,7 +65,7 @@ class SkillHomeHeaderView: UIView {
         backgroundColor = UIColor.lightGrayColor()
 
         headerImageView.userInteractionEnabled = true
-        let tap = UITapGestureRecognizer(target: self, action: "tap")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(SkillHomeHeaderView.tap))
         headerImageView.addGestureRecognizer(tap)
     }
 

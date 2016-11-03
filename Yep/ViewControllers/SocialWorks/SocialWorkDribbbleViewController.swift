@@ -7,10 +7,12 @@
 //
 
 import UIKit
+import YepKit
+import YepNetworking
 import Kingfisher
 import MonkeyKing
 
-class SocialWorkDribbbleViewController: BaseViewController {
+final class SocialWorkDribbbleViewController: BaseViewController {
 
     var socialAccount: SocialAccount?
     var profileUser: ProfileUser?
@@ -20,13 +22,11 @@ class SocialWorkDribbbleViewController: BaseViewController {
 
 
     private lazy var shareButton: UIBarButtonItem = {
-        let button = UIBarButtonItem(barButtonSystemItem: .Action, target: self, action: "share:")
+        let button = UIBarButtonItem(barButtonSystemItem: .Action, target: self, action: #selector(SocialWorkDribbbleViewController.share(_:)))
         return button
-        }()
+    }()
     
     @IBOutlet private weak var dribbbleCollectionView: UICollectionView!
-
-    private let dribbbleShotCellIdentifier = "DribbbleShotCell"
 
     private lazy var collectionViewWidth: CGFloat = {
         return CGRectGetWidth(self.dribbbleCollectionView.bounds)
@@ -46,8 +46,6 @@ class SocialWorkDribbbleViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-//        animatedOnNavigationBar = false
-        
         if let socialAccount = socialAccount {
             let accountImageView = UIImageView(image: UIImage(named: socialAccount.iconName)!)
             accountImageView.tintColor = socialAccount.tintColor
@@ -59,8 +57,7 @@ class SocialWorkDribbbleViewController: BaseViewController {
 
         navigationItem.rightBarButtonItem = shareButton
         
-
-        dribbbleCollectionView.registerNib(UINib(nibName: dribbbleShotCellIdentifier, bundle: nil), forCellWithReuseIdentifier: dribbbleShotCellIdentifier)
+        dribbbleCollectionView.registerNibOf(DribbbleShotCell)
 
         if let gestures = navigationController?.view.gestureRecognizers {
             for recognizer in gestures {
@@ -99,7 +96,7 @@ class SocialWorkDribbbleViewController: BaseViewController {
                 }, completion: { dribbbleWork in
                     println("dribbbleWork: \(dribbbleWork.shots.count)")
 
-                    dispatch_async(dispatch_get_main_queue()) { [weak self] in
+                    SafeDispatch.async { [weak self] in
                         self?.dribbbleWork = dribbbleWork
                         self?.dribbbleShots = dribbbleWork.shots
 
@@ -113,7 +110,7 @@ class SocialWorkDribbbleViewController: BaseViewController {
     // MARK: Actions
 
     private func updateDribbbleCollectionView() {
-        dispatch_async(dispatch_get_main_queue()) {
+        SafeDispatch.async {
             self.dribbbleCollectionView.reloadData()
         }
     }
@@ -122,7 +119,7 @@ class SocialWorkDribbbleViewController: BaseViewController {
 
         if let dribbbleWork = dribbbleWork, profileURL = NSURL(string: dribbbleWork.userURLString) {
 
-            let title = String(format: NSLocalizedString("%@'s Dribbble", comment: ""), dribbbleWork.username)
+            let title = String(format: NSLocalizedString("whosDribbble%@", comment: ""), dribbbleWork.username)
 
             var thumbnail: UIImage?
             if let socialAccount = socialAccount {
@@ -157,7 +154,7 @@ class SocialWorkDribbbleViewController: BaseViewController {
             )
             
             let activityViewController = UIActivityViewController(activityItems: [profileURL], applicationActivities: [weChatSessionActivity, weChatTimelineActivity])
-
+            activityViewController.excludedActivityTypes = [UIActivityTypeMessage, UIActivityTypeMail]
             presentViewController(activityViewController, animated: true, completion: nil)
         }
     }
@@ -176,7 +173,7 @@ extension SocialWorkDribbbleViewController: UICollectionViewDataSource, UICollec
 
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
 
-        let cell = collectionView.dequeueReusableCellWithReuseIdentifier(dribbbleShotCellIdentifier, forIndexPath: indexPath) as! DribbbleShotCell
+        let cell: DribbbleShotCell = collectionView.dequeueReusableCell(forIndexPath: indexPath)
 
         let shot = dribbbleShots[indexPath.item]
 

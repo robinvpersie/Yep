@@ -7,10 +7,18 @@
 //
 
 import UIKit
+import YepKit
 
 private let screenWidth: CGFloat = UIScreen.mainScreen().bounds.width
 
-class FeedGithubRepoCell: FeedBasicCell {
+final class FeedGithubRepoCell: FeedBasicCell {
+
+    override class func heightOfFeed(feed: DiscoveredFeed) -> CGFloat {
+
+        let height = super.heightOfFeed(feed) + (80 + 15)
+
+        return ceil(height)
+    }
 
     var tapGithubRepoLinkAction: (NSURL -> Void)?
 
@@ -30,7 +38,7 @@ class FeedGithubRepoCell: FeedBasicCell {
 
     lazy var socialWorkBorderImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "social_work_border")
+        imageView.image = UIImage.yep_socialWorkBorder
         return imageView
     }()
 
@@ -46,35 +54,9 @@ class FeedGithubRepoCell: FeedBasicCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
+    override func configureWithFeed(feed: DiscoveredFeed, layout: FeedCellLayout, needShowSkill: Bool) {
 
-        // Configure the view for the selected state
-    }
-
-    override class func heightOfFeed(feed: DiscoveredFeed) -> CGFloat {
-
-        let height = super.heightOfFeed(feed) + (80 + 15)
-
-        return ceil(height)
-    }
-
-    override func configureWithFeed(feed: DiscoveredFeed, layoutCache: FeedCellLayout.Cache, needShowSkill: Bool) {
-
-        var _newLayout: FeedCellLayout?
-        super.configureWithFeed(feed, layoutCache: (layout: layoutCache.layout, update: { newLayout in
-            _newLayout = newLayout
-        }), needShowSkill: needShowSkill)
-
-        if needShowSkill, let _ = feed.skill {
-            logoImageView.frame.origin.x = skillButton.frame.origin.x - 10 - 18
-            logoImageView.frame.origin.y = nicknameLabel.frame.origin.y
-
-        } else {
-            logoImageView.frame.origin.x = screenWidth - 18 - 15
-            logoImageView.frame.origin.y = nicknameLabel.frame.origin.y
-        }
-        nicknameLabel.frame.size.width -= logoImageView.bounds.width + 10
+        super.configureWithFeed(feed, layout: layout, needShowSkill: needShowSkill)
 
         if let attachment = feed.attachment {
             if case let .Github(githubRepo) = attachment {
@@ -95,27 +77,19 @@ class FeedGithubRepoCell: FeedBasicCell {
             }
         }
 
-        if let githubRepoLayout = layoutCache.layout?.githubRepoLayout {
-            githubRepoContainerView.frame = githubRepoLayout.githubRepoContainerViewFrame
-            socialWorkBorderImageView.frame = githubRepoContainerView.frame
+        if needShowSkill, let _ = feed.skill {
+            logoImageView.frame.origin.x = skillButton.frame.origin.x - 10 - 18
+            logoImageView.frame.origin.y = nicknameLabel.frame.origin.y
 
         } else {
-            let y = messageTextView.frame.origin.y + messageTextView.frame.height + 15
-            let height: CGFloat = leftBottomLabel.frame.origin.y - y - 15
-            githubRepoContainerView.frame = CGRect(x: 65, y: y, width: screenWidth - 65 - 60, height: height)
-
-            socialWorkBorderImageView.frame = githubRepoContainerView.frame
+            logoImageView.frame.origin.x = screenWidth - 18 - 15
+            logoImageView.frame.origin.y = nicknameLabel.frame.origin.y
         }
+        nicknameLabel.frame.size.width -= logoImageView.bounds.width + 10
 
-        if layoutCache.layout == nil {
-
-            let githubRepoLayout = FeedCellLayout.GithubRepoLayout(githubRepoContainerViewFrame: githubRepoContainerView.frame)
-            _newLayout?.githubRepoLayout = githubRepoLayout
-
-            if let newLayout = _newLayout {
-                layoutCache.update(layout: newLayout)
-            }
-        }
+        let githubRepoLayout = layout.githubRepoLayout!
+        githubRepoContainerView.frame = githubRepoLayout.githubRepoContainerViewFrame
+        socialWorkBorderImageView.frame = githubRepoContainerView.frame
     }
 }
 

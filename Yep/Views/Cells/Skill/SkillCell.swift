@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import YepKit
 
-class SkillCell: UICollectionViewCell {
+final class SkillCell: UICollectionViewCell {
 
     static let height: CGFloat = 24
 
@@ -24,54 +25,19 @@ class SkillCell: UICollectionViewCell {
 
     var tapped: Bool = false {
         willSet {
-            UIView.animateWithDuration(0.1, delay: 0.0, options: .CurveEaseInOut, animations: { _ in
-                self.backgroundImageView.tintColor = newValue ? UIColor.blackColor().colorWithAlphaComponent(0.25) : UIColor.yepTintColor()
-            }, completion: { finished in
-            })
+            UIView.animateWithDuration(0.1, delay: 0.0, options: .CurveEaseInOut, animations: { [weak self] in
+                self?.backgroundImageView.tintColor = newValue ? UIColor.blackColor().colorWithAlphaComponent(0.25) : UIColor.yepTintColor()
+            }, completion: nil)
         }
     }
 
-    class Skill: NSObject {
-        let ID: String
-        let localName: String
-        let coverURLString: String?
-
-        enum Category: String {
-            case Art = "Art"
-            case Technology = "Technology"
-            case Sport = "Sport"
-            case LifeStyle = "Life Style"
-
-            var gradientImage: UIImage? {
-                switch self {
-                case .Art:
-                    return UIImage(named: "gradient_art")
-                case .Technology:
-                    return UIImage(named: "gradient_tech")
-                case .Sport:
-                    return UIImage(named: "gradient_sport")
-                case .LifeStyle:
-                    return UIImage(named: "gradient_life")
-                }
-            }
-        }
-        let category: Category
-
-        init(ID: String, localName: String, coverURLString: String?, category: Category?) {
-            self.ID = ID
-            self.localName = localName
-            self.coverURLString = coverURLString
-            self.category = category ?? .Art
-        }
-    }
-
-    var skill: Skill? {
+    var skill: SkillCellSkill? {
         willSet {
             skillLabel.text = newValue?.localName
         }
     }
 
-    var tapAction: ((skill: Skill) -> Void)?
+    var tapAction: ((skill: SkillCellSkill) -> Void)?
 
     override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
         tapped = true

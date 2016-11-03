@@ -8,26 +8,14 @@
 
 import UIKit
 
-class EditProfileColoredTitleCell: UITableViewCell {
+final class EditProfileColoredTitleCell: UITableViewCell {
+
+    @IBOutlet weak var coloredTitleLabel: UILabel!
 
     var coloredTitleColor: UIColor = UIColor.redColor() {
         willSet {
             coloredTitleLabel.textColor = newValue
         }
     }
-
-    @IBOutlet weak var coloredTitleLabel: UILabel!
-
-
-    override func awakeFromNib() {
-        super.awakeFromNib()
-        // Initialization code
-    }
-
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
-    }
-    
 }
+

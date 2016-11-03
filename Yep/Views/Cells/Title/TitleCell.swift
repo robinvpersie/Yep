@@ -8,7 +8,7 @@
 
 import UIKit
 
-class TitleCell: UITableViewCell {
+final class TitleCell: UITableViewCell {
 
     @IBOutlet weak var singleTitleLabel: UILabel!
 
@@ -16,17 +16,6 @@ class TitleCell: UITableViewCell {
         didSet {
             singleTitleLabel.font = boldEnabled ? UIFont.boldSystemFontOfSize(17) : UIFont.systemFontOfSize(17)
         }
-    }
-
-    override func awakeFromNib() {
-        super.awakeFromNib()
-        // Initialization code
-    }
-
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
     }
 }
 

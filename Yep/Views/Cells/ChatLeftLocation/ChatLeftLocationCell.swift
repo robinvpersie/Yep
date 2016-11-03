@@ -7,8 +7,11 @@
 //
 
 import UIKit
+import YepKit
 
-class ChatLeftLocationCell: ChatBaseCell {
+final class ChatLeftLocationCell: ChatBaseCell {
+
+    static private let mapSize = CGSize(width: 192, height: 108)
 
     lazy var mapImageView: UIImageView = {
         let imageView = UIImageView()
@@ -25,7 +28,7 @@ class ChatLeftLocationCell: ChatBaseCell {
     }()
 
     lazy var borderImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "left_tail_image_bubble_border"))
+        let imageView = UIImageView(image: UIImage.yep_leftTailImageBubbleBorder)
         return imageView
     }()
 
@@ -69,7 +72,7 @@ class ChatLeftLocationCell: ChatBaseCell {
         }
 
         mapImageView.userInteractionEnabled = true
-        let tap = UITapGestureRecognizer(target: self, action: "tapMediaView")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(ChatLeftLocationCell.tapMediaView))
         mapImageView.addGestureRecognizer(tap)
 
         prepareForMenuAction = { otherGesturesEnabled in
@@ -85,7 +88,7 @@ class ChatLeftLocationCell: ChatBaseCell {
         mediaTapAction?()
     }
     
-    func configureWithMessage(message: Message, mediaTapAction: MediaTapAction?, collectionView: UICollectionView, indexPath: NSIndexPath) {
+    func configureWithMessage(message: Message, mediaTapAction: MediaTapAction?) {
 
         self.user = message.fromFriend
 
@@ -104,19 +107,13 @@ class ChatLeftLocationCell: ChatBaseCell {
 
         locationNameLabel.text = locationName
 
-        ImageCache.sharedInstance.mapImageOfMessage(message, withSize: CGSize(width: 192, height: 108), tailDirection: .Left, bottomShadowEnabled: !locationName.isEmpty) { mapImage in
-            dispatch_async(dispatch_get_main_queue()) {
-                if let _ = collectionView.cellForItemAtIndexPath(indexPath) {
-                    self.mapImageView.image = mapImage
-                }
-            }
-        }
+        mapImageView.yep_setMapImageOfMessage(message, withSize: ChatLeftLocationCell.mapSize, tailDirection: .Left)
     }
     
     private func configureNameLabel() {
 
         if inGroup {
-            nameLabel.text = user?.chatCellCompositedName
+            nameLabel.text = user?.compositedName
 
             let height = YepConfig.ChatCell.nameLabelHeightForGroup
             let x = CGRectGetMaxX(avatarImageView.frame) + YepConfig.chatCellGapBetweenTextContentLabelAndAvatar()

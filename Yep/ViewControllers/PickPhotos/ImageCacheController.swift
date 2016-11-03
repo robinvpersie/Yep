@@ -9,12 +9,12 @@
 import Foundation
 import Photos
 
-class ImageCacheController {
+final class ImageCacheController {
 
     private var cachedIndices = NSIndexSet()
-    var cachePreheatSize: Int
-    var imageCache: PHCachingImageManager
-    var images: PHFetchResult
+    let cachePreheatSize: Int
+    let imageCache: PHCachingImageManager
+    let images: PHFetchResult
     var targetSize = CGSize(width: 80, height: 80)
     var contentMode = PHImageContentMode.AspectFill
 
@@ -48,7 +48,6 @@ class ImageCacheController {
                 //println("Stopping caching image \(index)")
             }
         }
-
         // And which are new?
         updatedCache.enumerateIndexesUsingBlock { index, _ in
             if !self.cachedIndices.containsIndex(index) {

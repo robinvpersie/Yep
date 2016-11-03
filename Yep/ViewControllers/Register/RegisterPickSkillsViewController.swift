@@ -7,15 +7,17 @@
 //
 
 import UIKit
+import YepKit
+import YepNetworking
 
-class RegisterPickSkillsViewController: BaseViewController {
+final class RegisterPickSkillsViewController: BaseViewController {
 
     var isRegister = true
 
     var isDirty = false {
         didSet {
             if !isRegister {
-                let backBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Cancel, target: self, action: "cancel")
+                let backBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Cancel, target: self, action: #selector(RegisterPickSkillsViewController.cancel))
                 navigationItem.leftBarButtonItem = backBarButtonItem
             }
 
@@ -23,7 +25,6 @@ class RegisterPickSkillsViewController: BaseViewController {
         }
     }
 
-    
     @IBOutlet weak var introlLabel: UILabel!
     
     var afterChangeSkillsAction: ((masterSkills: [Skill], learningSkills: [Skill]) -> Void)?
@@ -33,15 +34,11 @@ class RegisterPickSkillsViewController: BaseViewController {
     var masterSkills = [Skill]()
     var learningSkills = [Skill]()
 
-    let skillSelectionCellIdentifier = "SkillSelectionCell"
-    let skillAddCellIdentifier = "SkillAddCell"
-    let addSkillsReusableViewIdentifier = "AddSkillsReusableView"
-
     let skillTextAttributes = [NSFontAttributeName: UIFont.skillTextLargeFont()]
 
     lazy var collectionViewWidth: CGFloat = {
         return CGRectGetWidth(self.skillsCollectionView.bounds)
-        }()
+    }()
 
     let sectionLeftEdgeInset: CGFloat = registerPickSkillsLayoutLeftEdgeInset
     let sectionRightEdgeInset: CGFloat = registerPickSkillsLayoutRightEdgeInset
@@ -54,45 +51,45 @@ class RegisterPickSkillsViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let doneBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Done, target: self, action: "saveSkills:")
+        let doneBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Done, target: self, action: #selector(RegisterPickSkillsViewController.saveSkills(_:)))
         navigationItem.rightBarButtonItem = doneBarButtonItem
         navigationItem.rightBarButtonItem?.enabled = false
 
         introlLabel.text = NSLocalizedString("You may meet different people and content depends on your skills", comment: "")
         
         if !isRegister {
-            navigationItem.titleView = NavigationTitleLabel(title: NSLocalizedString("Change Skills", comment: ""))
+            navigationItem.titleView = NavigationTitleLabel(title: String.trans_titleChangeSkills)
         } else {
             navigationItem.titleView = NavigationTitleLabel(title: NSLocalizedString("Pick some skills", comment: ""))
         }
 
+        skillsCollectionView.registerNibOf(SkillSelectionCell)
+        skillsCollectionView.registerNibOf(SkillAddCell)
 
-        skillsCollectionView.registerNib(UINib(nibName: addSkillsReusableViewIdentifier, bundle: nil), forSupplementaryViewOfKind: UICollectionElementKindSectionHeader, withReuseIdentifier: addSkillsReusableViewIdentifier)
-        skillsCollectionView.registerClass(UICollectionReusableView.self, forSupplementaryViewOfKind: UICollectionElementKindSectionFooter, withReuseIdentifier: "footer")
-        skillsCollectionView.registerNib(UINib(nibName: skillSelectionCellIdentifier, bundle: nil), forCellWithReuseIdentifier: skillSelectionCellIdentifier)
-        skillsCollectionView.registerNib(UINib(nibName: skillAddCellIdentifier, bundle: nil), forCellWithReuseIdentifier: skillAddCellIdentifier)
+        skillsCollectionView.registerHeaderNibOf(AddSkillsReusableView)
+        skillsCollectionView.registerFooterClassOf(UICollectionReusableView)
 
-        allSkillCategories(failureHandler: { (reason, errorMessage) -> Void in
+        allSkillCategories(failureHandler: { (reason, errorMessage) in
             defaultFailureHandler(reason: reason, errorMessage: errorMessage)
             
-        }, completion: { skillCategories -> Void in
-            self.skillCategories = skillCategories
+        }, completion: { [weak self] skillCategories in
+            self?.skillCategories = skillCategories
         })
     }
 
     // MARK: Actions
 
     func updateSkillsCollectionView() {
-        dispatch_async(dispatch_get_main_queue()) {
-            self.skillsCollectionView.reloadData()
+        SafeDispatch.async { [weak self] in
+            self?.skillsCollectionView.reloadData()
         }
     }
 
-    func cancel() {
+    @objc private func cancel() {
         navigationController?.popViewControllerAnimated(true)
     }
 
-    @IBAction func saveSkills(sender: AnyObject) {
+    @objc private func saveSkills(sender: AnyObject) {
         doSaveSkills()
     }
 
@@ -134,15 +131,18 @@ class RegisterPickSkillsViewController: BaseViewController {
             })
         }
 
-        dispatch_group_notify(addSkillsGroup, dispatch_get_main_queue()) {
+        dispatch_group_notify(addSkillsGroup, dispatch_get_main_queue()) { [weak self] in
 
-            if self.isRegister {
+            guard let strongSelf = self else {
+                return
+            }
+            if strongSelf.isRegister {
                 // 同步一下我的信息，因为 appDelegate.sync() 执行太早，导致初次注册 Profile 里不显示 skills
                 syncMyInfoAndDoFurtherAction {
 
                     YepHUD.hideActivityIndicator()
 
-                    dispatch_async(dispatch_get_main_queue()) {
+                    SafeDispatch.async {
                         if let appDelegate = UIApplication.sharedApplication().delegate as? AppDelegate {
                             appDelegate.startMainStory()
                         }
@@ -156,9 +156,9 @@ class RegisterPickSkillsViewController: BaseViewController {
                     YepAlert.alertSorry(message: errorMessage, inViewController: self)
 
                 } else {
-                    self.navigationController?.popViewControllerAnimated(true)
+                    strongSelf.navigationController?.popViewControllerAnimated(true)
 
-                    self.afterChangeSkillsAction?(masterSkills: self.masterSkills, learningSkills: self.learningSkills)
+                    strongSelf.afterChangeSkillsAction?(masterSkills: strongSelf.masterSkills, learningSkills: strongSelf.learningSkills)
                 }
             }
         }
@@ -313,7 +313,7 @@ extension RegisterPickSkillsViewController: UICollectionViewDataSource, UICollec
         case Section.Master.rawValue:
 
             if indexPath.item < masterSkills.count {
-                let cell = collectionView.dequeueReusableCellWithReuseIdentifier(skillSelectionCellIdentifier, forIndexPath: indexPath) as! SkillSelectionCell
+                let cell: SkillSelectionCell = collectionView.dequeueReusableCell(forIndexPath: indexPath)
 
                 let skill = masterSkills[indexPath.item]
 
@@ -322,7 +322,7 @@ extension RegisterPickSkillsViewController: UICollectionViewDataSource, UICollec
                 return cell
 
             } else {
-                let cell = collectionView.dequeueReusableCellWithReuseIdentifier(skillAddCellIdentifier, forIndexPath: indexPath) as! SkillAddCell
+                let cell: SkillAddCell = collectionView.dequeueReusableCell(forIndexPath: indexPath)
 
                 cell.skillSet = .Master
 
@@ -346,7 +346,7 @@ extension RegisterPickSkillsViewController: UICollectionViewDataSource, UICollec
 
         case Section.Learning.rawValue:
             if indexPath.item < learningSkills.count {
-                let cell = collectionView.dequeueReusableCellWithReuseIdentifier(skillSelectionCellIdentifier, forIndexPath: indexPath) as! SkillSelectionCell
+                let cell: SkillSelectionCell = collectionView.dequeueReusableCell(forIndexPath: indexPath)
 
                 let skill = learningSkills[indexPath.item]
 
@@ -355,7 +355,7 @@ extension RegisterPickSkillsViewController: UICollectionViewDataSource, UICollec
                 return cell
 
             } else {
-                let cell = collectionView.dequeueReusableCellWithReuseIdentifier(skillAddCellIdentifier, forIndexPath: indexPath) as! SkillAddCell
+                let cell: SkillAddCell = collectionView.dequeueReusableCell(forIndexPath: indexPath)
 
                 cell.skillSet = .Learning
 
@@ -386,7 +386,7 @@ extension RegisterPickSkillsViewController: UICollectionViewDataSource, UICollec
 
         if kind == UICollectionElementKindSectionHeader {
 
-            let header = collectionView.dequeueReusableSupplementaryViewOfKind(kind, withReuseIdentifier: addSkillsReusableViewIdentifier, forIndexPath: indexPath) as! AddSkillsReusableView
+            let header: AddSkillsReusableView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, forIndexPath: indexPath)
 
             switch indexPath.section {
 
@@ -403,7 +403,7 @@ extension RegisterPickSkillsViewController: UICollectionViewDataSource, UICollec
             return header
 
         } else {
-            let footer = collectionView.dequeueReusableSupplementaryViewOfKind(kind, withReuseIdentifier: "footer", forIndexPath: indexPath) 
+            let footer: UICollectionReusableView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, forIndexPath: indexPath)
             return footer
         }
     }
@@ -483,5 +483,4 @@ extension RegisterPickSkillsViewController: UICollectionViewDataSource, UICollec
         }
     }
 }
-
 

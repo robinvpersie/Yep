@@ -7,10 +7,12 @@
 //
 
 import UIKit
+import YepKit
+import YepNetworking
 import KeyboardMan
 import DeviceGuru
 
-class FeedbackViewController: UIViewController {
+final class FeedbackViewController: UIViewController {
 
     @IBOutlet private weak var promptLabel: UILabel! {
         didSet {
@@ -60,7 +62,7 @@ class FeedbackViewController: UIViewController {
 
         view.backgroundColor = UIColor.yepViewBackgroundColor()
 
-        let doneBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Done, target: self, action: "done:")
+        let doneBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Done, target: self, action: #selector(FeedbackViewController.done(_:)))
         navigationItem.rightBarButtonItem = doneBarButtonItem
         navigationItem.rightBarButtonItem?.enabled = false
 
@@ -74,7 +76,7 @@ class FeedbackViewController: UIViewController {
             self?.view.layoutIfNeeded()
         }
 
-        let tap = UITapGestureRecognizer(target: self, action: "tap:")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(FeedbackViewController.tap(_:)))
         view.addGestureRecognizer(tap)
     }
 
@@ -112,7 +114,7 @@ class FeedbackViewController: UIViewController {
 
             YepAlert.alert(title: NSLocalizedString("Success", comment: ""), message: NSLocalizedString("Thanks! Your feedback has been recorded!", comment: ""), dismissTitle: NSLocalizedString("OK", comment: ""), inViewController: self, withDismissAction: {
 
-                dispatch_async(dispatch_get_main_queue()) {
+                SafeDispatch.async {
                     self?.navigationController?.popViewControllerAnimated(true)
                 }
             })

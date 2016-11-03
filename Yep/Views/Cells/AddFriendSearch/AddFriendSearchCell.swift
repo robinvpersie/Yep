@@ -8,7 +8,7 @@
 
 import UIKit
 
-class AddFriendSearchCell: UITableViewCell {
+final class AddFriendSearchCell: UITableViewCell {
 
     @IBOutlet weak var searchTextField: UITextField!
 
@@ -17,11 +17,5 @@ class AddFriendSearchCell: UITableViewCell {
 
         searchTextField.placeholder = NSLocalizedString("Search User", comment: "")
     }
-
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
-    }
-    
 }
+    

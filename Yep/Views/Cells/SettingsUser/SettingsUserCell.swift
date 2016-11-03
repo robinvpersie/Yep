@@ -7,9 +7,10 @@
 //
 
 import UIKit
+import YepKit
 import Navi
 
-class SettingsUserCell: UITableViewCell {
+final class SettingsUserCell: UITableViewCell {
 
     @IBOutlet weak var avatarImageView: UIImageView!
     @IBOutlet weak var avatarImageViewWidthConstraint: NSLayoutConstraint!
@@ -39,19 +40,19 @@ class SettingsUserCell: UITableViewCell {
         avatarImageViewWidthConstraint.constant = avatarSize
 
         YepUserDefaults.avatarURLString.bindAndFireListener(Listener.Avatar) { [weak self] _ in
-            dispatch_async(dispatch_get_main_queue()) {
+            SafeDispatch.async {
                 self?.updateAvatar()
             }
         }
 
         YepUserDefaults.nickname.bindAndFireListener(Listener.Nickname) { [weak self] nickname in
-            dispatch_async(dispatch_get_main_queue()) {
+            SafeDispatch.async {
                 self?.nameLabel.text = nickname
             }
         }
 
         YepUserDefaults.introduction.bindAndFireListener(Listener.Introduction) { [weak self] introduction in
-            dispatch_async(dispatch_get_main_queue()) {
+            SafeDispatch.async {
                 self?.introLabel.text = introduction
             }
         }
@@ -71,11 +72,5 @@ class SettingsUserCell: UITableViewCell {
             avatarImageView.navi_setAvatar(plainAvatar, withFadeTransitionDuration: avatarFadeTransitionDuration)
         }
     }
-
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
-    }
-    
 }
+    

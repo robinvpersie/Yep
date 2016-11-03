@@ -9,7 +9,7 @@
 import UIKit
 import Ruler
 
-class ShowViewController: UIViewController {
+final class ShowViewController: UIViewController {
 
     @IBOutlet private weak var scrollView: UIScrollView!
 
@@ -74,14 +74,14 @@ class ShowViewController: UIViewController {
         registerButton.backgroundColor = UIColor.yepTintColor()
         loginButton.setTitleColor(UIColor.yepInputTextColor(), forState: .Normal)
 
-        let viewsDictionary = [
+        let viewsDictionary: [String: AnyObject] = [
             "view": view,
             "stepA": stepA.view,
             "stepB": stepB.view,
             "stepC": stepC.view,
         ]
 
-        let vConstraints = NSLayoutConstraint.constraintsWithVisualFormat("V:|[stepA(==view)]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
+        let vConstraints = NSLayoutConstraint.constraintsWithVisualFormat("V:|[stepA(==view)]|", options: [], metrics: nil, views: viewsDictionary)
 
         NSLayoutConstraint.activateConstraints(vConstraints)
 
@@ -129,16 +129,14 @@ class ShowViewController: UIViewController {
     // MARK: Actions
     
     @IBAction private func register(sender: UIButton) {
-        let storyboard = UIStoryboard(name: "Intro", bundle: nil)
-        let vc = storyboard.instantiateViewControllerWithIdentifier("RegisterPickNameViewController") as! RegisterPickNameViewController
 
+        let vc = UIStoryboard.Scene.registerPickName
         navigationController?.pushViewController(vc, animated: true)
     }
 
     @IBAction private func login(sender: UIButton) {
-        let storyboard = UIStoryboard(name: "Intro", bundle: nil)
-        let vc = storyboard.instantiateViewControllerWithIdentifier("LoginByMobileViewController") as! LoginByMobileViewController
 
+        let vc = UIStoryboard.Scene.loginByMobile
         navigationController?.pushViewController(vc, animated: true)
     }
 }

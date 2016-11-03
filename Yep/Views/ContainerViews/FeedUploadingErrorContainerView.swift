@@ -8,7 +8,7 @@
 
 import UIKit
 
-class FeedUploadingErrorContainerView: UIView {
+final class FeedUploadingErrorContainerView: UIView {
 
     var retryAction: (() -> Void)?
     var deleteAction: (() -> Void)?
@@ -21,7 +21,7 @@ class FeedUploadingErrorContainerView: UIView {
     }()
 
     lazy var iconImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "icon_topic_reddot"))
+        let imageView = UIImageView(image: UIImage.yep_iconTopicReddot)
         return imageView
     }()
 
@@ -36,7 +36,7 @@ class FeedUploadingErrorContainerView: UIView {
         let button = UIButton()
         button.setTitle(NSLocalizedString("Retry", comment: ""), forState: .Normal)
         button.setTitleColor(UIColor.yepTintColor(), forState: .Normal)
-        button.addTarget(self, action: "retryUploadingFeed:", forControlEvents: .TouchUpInside)
+        button.addTarget(self, action: #selector(FeedUploadingErrorContainerView.retryUploadingFeed(_:)), forControlEvents: .TouchUpInside)
         return button
     }()
 
@@ -44,7 +44,7 @@ class FeedUploadingErrorContainerView: UIView {
         let button = UIButton()
         button.setTitle(NSLocalizedString("Delete", comment: ""), forState: .Normal)
         button.setTitleColor(UIColor.redColor(), forState: .Normal)
-        button.addTarget(self, action: "deleteUploadingFeed:", forControlEvents: .TouchUpInside)
+        button.addTarget(self, action: #selector(FeedUploadingErrorContainerView.deleteUploadingFeed(_:)), forControlEvents: .TouchUpInside)
         return button
     }()
 
@@ -65,7 +65,7 @@ class FeedUploadingErrorContainerView: UIView {
             leftContainerView.translatesAutoresizingMaskIntoConstraints = false
             deleteButton.translatesAutoresizingMaskIntoConstraints = false
 
-            let views = [
+            let views: [String: AnyObject] = [
                 "leftContainerView": leftContainerView,
                 "deleteButton": deleteButton,
             ]
@@ -86,7 +86,7 @@ class FeedUploadingErrorContainerView: UIView {
             errorMessageLabel.translatesAutoresizingMaskIntoConstraints = false
             retryButton.translatesAutoresizingMaskIntoConstraints = false
 
-            let views = [
+            let views: [String: AnyObject] = [
                 "iconImageView": iconImageView,
                 "errorMessageLabel": errorMessageLabel,
                 "retryButton": retryButton,

@@ -7,22 +7,27 @@
 //
 
 import UIKit
-import APAddressBook
+import YepKit
+import YepNetworking
 
-class FriendsInContactsViewController: BaseViewController {
+final class FriendsInContactsViewController: BaseViewController {
 
     struct Notification {
         static let NewFriends = "NewFriendsInContactsNotification"
     }
 
-    @IBOutlet private weak var friendsTableView: UITableView!
-    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
+    @IBOutlet private weak var friendsTableView: UITableView! {
+        didSet {
+            friendsTableView.separatorColor = UIColor.yepCellSeparatorColor()
+            friendsTableView.separatorInset = YepConfig.ContactsCell.separatorInset
 
-    private lazy var addressBook: APAddressBook = {
-        let addressBook = APAddressBook()
-        addressBook.fieldsMask = APContactField(rawValue: APContactField.Name.rawValue | APContactField.PhonesOnly.rawValue)
-        return addressBook
-    }()
+            friendsTableView.registerNibOf(ContactsCell)
+            friendsTableView.rowHeight = 80
+            friendsTableView.tableFooterView = UIView()
+        }
+    }
+
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
 
     private var discoveredUsers = [DiscoveredUser]() {
         didSet {
@@ -36,64 +41,46 @@ class FriendsInContactsViewController: BaseViewController {
             }
         }
     }
-    
-    private let cellIdentifier = "ContactsCell"
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        title = NSLocalizedString("Available Friends", comment: "")
+        title = String.trans_titleAvailableFriends
+    }
 
-        friendsTableView.separatorColor = UIColor.yepCellSeparatorColor()
-        friendsTableView.separatorInset = YepConfig.ContactsCell.separatorInset
-        
-        friendsTableView.registerNib(UINib(nibName: cellIdentifier, bundle: nil), forCellReuseIdentifier: cellIdentifier)
-        friendsTableView.rowHeight = 80
-        friendsTableView.tableFooterView = UIView()
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
 
-        addressBook.loadContacts { (contacts, error) -> Void in
-            
-            if let contacts = contacts {
+        uploadContactsToMatchNewFriends()
+    }
 
-                var uploadContacts = [UploadContact]()
+    // MARK: Upload Contacts
 
-                for contact in contacts {
+    func uploadContactsToMatchNewFriends() {
 
-                    if let name = contact.name {
+        let uploadContacts = UploadContactsMaker.make()
 
-                        if let phones = contact.phones{
-                            for phone in phones {
-                                if let compositeName = name.compositeName, number = phone.number {
-                                    let uploadContact: UploadContact = ["name": compositeName , "number": number]
-                                    uploadContacts.append(uploadContact)
-                                }
-                            }
-                        }
-                    }
-                }
+        //println("uploadContacts: \(uploadContacts)")
+        println("uploadContacts.count: \(uploadContacts.count)")
 
-                //println(uploadContacts)
-
-                dispatch_async(dispatch_get_main_queue()) { [weak self] in
-                    self?.activityIndicator.startAnimating()
-                }
-
-                friendsInContacts(uploadContacts, failureHandler: { (reason, errorMessage) in
-                    defaultFailureHandler(reason: reason, errorMessage: errorMessage)
-
-                    dispatch_async(dispatch_get_main_queue()) { [weak self] in
-                        self?.activityIndicator.stopAnimating()
-                    }
-
-                }, completion: { discoveredUsers in
-                    dispatch_async(dispatch_get_main_queue()) { [weak self] in
-                        self?.discoveredUsers = discoveredUsers
-
-                        self?.activityIndicator.stopAnimating()
-                    }
-                })
-            }
+        SafeDispatch.async { [weak self] in
+            self?.activityIndicator.startAnimating()
         }
+
+        friendsInContacts(uploadContacts, failureHandler: { (reason, errorMessage) in
+            defaultFailureHandler(reason: reason, errorMessage: errorMessage)
+
+            SafeDispatch.async { [weak self] in
+                self?.activityIndicator.stopAnimating()
+            }
+
+        }, completion: { discoveredUsers in
+            SafeDispatch.async { [weak self] in
+                self?.discoveredUsers = discoveredUsers
+
+                self?.activityIndicator.stopAnimating()
+            }
+        })
     }
 
     // MARK: Actions
@@ -108,17 +95,11 @@ class FriendsInContactsViewController: BaseViewController {
 
         if segue.identifier == "showProfile" {
             if let indexPath = sender as? NSIndexPath {
-                let discoveredUser = discoveredUsers[indexPath.row]
 
                 let vc = segue.destinationViewController as! ProfileViewController
 
-                if discoveredUser.id != YepUserDefaults.userID.value {
-                    vc.profileUser = ProfileUser.DiscoveredUserType(discoveredUser)
-                }
-
-                vc.setBackButtonWithTitle()
-
-                vc.hidesBottomBarWhenPushed = true
+                let discoveredUser = discoveredUsers[indexPath.row]
+                vc.prepare(withDiscoveredUser: discoveredUser)
             }
         }
     }
@@ -133,11 +114,12 @@ extension FriendsInContactsViewController: UITableViewDataSource, UITableViewDel
     }
 
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier(cellIdentifier) as! ContactsCell
+
+        let cell: ContactsCell = tableView.dequeueReusableCell()
 
         let discoveredUser = discoveredUsers[indexPath.row]
 
-        cell.configureWithDiscoveredUser(discoveredUser, tableView: tableView, indexPath: indexPath)
+        cell.configureWithDiscoveredUser(discoveredUser)
 
         return cell
     }

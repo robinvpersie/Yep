@@ -8,8 +8,9 @@
 
 import UIKit
 import Photos
+import YepKit
 
-class MoreMessageTypesView: UIView {
+final class MoreMessageTypesView: UIView {
 
     let totalHeight: CGFloat = 100 + 60 * 3
 
@@ -19,9 +20,6 @@ class MoreMessageTypesView: UIView {
         return view
     }()
 
-    let titleCellID = "TitleCell"
-    let quickPickPhotosCellID = "QuickPickPhotosCell"
-
     lazy var tableView: UITableView = {
         let view = UITableView()
         view.dataSource = self
@@ -29,8 +27,9 @@ class MoreMessageTypesView: UIView {
         view.rowHeight = 60
         view.scrollEnabled = false
 
-        view.registerNib(UINib(nibName: self.quickPickPhotosCellID, bundle: nil), forCellReuseIdentifier: self.quickPickPhotosCellID)
-        view.registerNib(UINib(nibName: self.titleCellID, bundle: nil), forCellReuseIdentifier: self.titleCellID)
+        view.registerNibOf(TitleCell)
+        view.registerNibOf(QuickPickPhotosCell)
+
         return view
     }()
 
@@ -58,50 +57,43 @@ class MoreMessageTypesView: UIView {
 
         containerView.alpha = 1
 
-        UIView.animateWithDuration(0.2, delay: 0.0, options: .CurveEaseIn, animations: { _ in
-            self.containerView.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.3)
+        UIView.animateWithDuration(0.2, delay: 0.0, options: .CurveEaseIn, animations: { [weak self] in
+            self?.containerView.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.3)
+        }, completion: nil)
 
-        }, completion: { _ in
-        })
-
-        UIView.animateWithDuration(0.2, delay: 0.1, options: .CurveEaseOut, animations: { _ in
-            self.tableViewBottomConstraint?.constant = 0
-
-            self.layoutIfNeeded()
-
-        }, completion: { _ in
-        })
+        UIView.animateWithDuration(0.2, delay: 0.1, options: .CurveEaseOut, animations: { [weak self] in
+            self?.tableViewBottomConstraint?.constant = 0
+            self?.layoutIfNeeded()
+        }, completion: nil)
     }
 
     func hide() {
 
-        UIView.animateWithDuration(0.2, delay: 0.0, options: .CurveEaseIn, animations: { _ in
-            self.tableViewBottomConstraint?.constant = self.totalHeight
+        UIView.animateWithDuration(0.2, delay: 0.0, options: .CurveEaseIn, animations: { [weak self] in
+            guard let strongSelf = self else { return }
 
-            self.layoutIfNeeded()
+            strongSelf.tableViewBottomConstraint?.constant = strongSelf.totalHeight
+            strongSelf.layoutIfNeeded()
+        }, completion: nil)
 
-        }, completion: { _ in
-        })
+        UIView.animateWithDuration(0.2, delay: 0.1, options: .CurveEaseOut, animations: { [weak self] in
+            self?.containerView.backgroundColor = UIColor.clearColor()
 
-        UIView.animateWithDuration(0.2, delay: 0.1, options: .CurveEaseOut, animations: { _ in
-            self.containerView.backgroundColor = UIColor.clearColor()
-
-        }, completion: { _ in
-            self.removeFromSuperview()
+        }, completion: { [weak self] _ in
+            self?.removeFromSuperview()
         })
     }
 
     func hideAndDo(afterHideAction: (() -> Void)?) {
 
-        UIView.animateWithDuration(0.2, delay: 0.0, options: .CurveLinear, animations: { _ in
-            self.containerView.alpha = 0
+        UIView.animateWithDuration(0.2, delay: 0.0, options: .CurveLinear, animations: { [weak self] in
+            guard let strongSelf = self else { return }
+            strongSelf.containerView.alpha = 0
+            strongSelf.tableViewBottomConstraint?.constant = strongSelf.totalHeight
+            strongSelf.layoutIfNeeded()
 
-            self.tableViewBottomConstraint?.constant = self.totalHeight
-
-            self.layoutIfNeeded()
-
-        }, completion: { finished in
-            self.removeFromSuperview()
+        }, completion: { [weak self] _ in
+            self?.removeFromSuperview()
         })
 
         delay(0.1) {
@@ -119,7 +111,7 @@ class MoreMessageTypesView: UIView {
 
             makeUI()
 
-            let tap = UITapGestureRecognizer(target: self, action: "hide")
+            let tap = UITapGestureRecognizer(target: self, action: #selector(MoreMessageTypesView.hide))
             containerView.addGestureRecognizer(tap)
 
             tap.cancelsTouchesInView = true
@@ -135,22 +127,22 @@ class MoreMessageTypesView: UIView {
         containerView.addSubview(tableView)
         tableView.translatesAutoresizingMaskIntoConstraints = false
 
-        let viewsDictionary = [
+        let viewsDictionary: [String: AnyObject] = [
             "containerView": containerView,
             "tableView": tableView,
         ]
 
         // layout for containerView
 
-        let containerViewConstraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[containerView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
-        let containerViewConstraintsV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[containerView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
+        let containerViewConstraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[containerView]|", options: [], metrics: nil, views: viewsDictionary)
+        let containerViewConstraintsV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[containerView]|", options: [], metrics: nil, views: viewsDictionary)
 
         NSLayoutConstraint.activateConstraints(containerViewConstraintsH)
         NSLayoutConstraint.activateConstraints(containerViewConstraintsV)
 
         // layout for tableView
 
-        let tableViewConstraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[tableView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
+        let tableViewConstraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[tableView]|", options: [], metrics: nil, views: viewsDictionary)
 
         let tableViewBottomConstraint = NSLayoutConstraint(item: tableView, attribute: .Bottom, relatedBy: .Equal, toItem: containerView, attribute: .Bottom, multiplier: 1.0, constant: self.totalHeight)
 
@@ -197,7 +189,7 @@ extension MoreMessageTypesView: UITableViewDataSource, UITableViewDelegate {
             case .Location:
                 return NSLocalizedString("Location", comment: "")
             case .Cancel:
-                return NSLocalizedString("Cancel", comment: "")
+                return String.trans_cancel
             }
         }
     }
@@ -213,8 +205,10 @@ extension MoreMessageTypesView: UITableViewDataSource, UITableViewDelegate {
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
 
         if let row = Row(rawValue: indexPath.row) {
+
             if case .PhotoGallery = row {
-                let cell = tableView.dequeueReusableCellWithIdentifier(quickPickPhotosCellID) as! QuickPickPhotosCell
+
+                let cell: QuickPickPhotosCell = tableView.dequeueReusableCell()
 
                 cell.alertCanNotAccessCameraRollAction = { [weak self] in
                     self?.alertCanNotAccessCameraRollAction?()
@@ -233,7 +227,8 @@ extension MoreMessageTypesView: UITableViewDataSource, UITableViewDelegate {
                 return cell
 
             } else {
-                let cell = tableView.dequeueReusableCellWithIdentifier(titleCellID) as! TitleCell
+                let cell: TitleCell = tableView.dequeueReusableCell()
+
                 cell.singleTitleLabel.text = row.normalTitle
                 cell.boldEnabled = false
                 cell.singleTitleLabel.textColor = UIColor.yepTintColor()

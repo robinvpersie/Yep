@@ -8,8 +8,10 @@
 
 import UIKit
 import Photos
+import YepKit
+import Ruler
 
-class PhotoCell: UICollectionViewCell {
+final class PhotoCell: UICollectionViewCell {
 
     @IBOutlet weak var photoImageView: UIImageView!
     @IBOutlet weak var photoPickedImageView: UIImageView!
@@ -24,15 +26,19 @@ class PhotoCell: UICollectionViewCell {
 
             let options = PHImageRequestOptions.yep_sharedOptions
 
-            self.imageManager?.requestImageForAsset(imageAsset, targetSize: CGSize(width: 120, height: 120), contentMode: .AspectFill, options: options) { [weak self] image, info in
-                self?.photoImageView.image = image
+            let width: CGFloat = Ruler.iPhoneHorizontal(160, 188, 310).value
+            let height = width
+            let targetSize = CGSize(width: width, height: height)
+
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) { [weak self] in
+                self?.imageManager?.requestImageForAsset(imageAsset, targetSize: targetSize, contentMode: .AspectFill, options: options) { [weak self] image, info in
+
+                    SafeDispatch.async { [weak self] in
+                        self?.photoImageView.image = image
+                    }
+                }
             }
         }
-    }
-
-    override func awakeFromNib() {
-        super.awakeFromNib()
-        // Initialization code
     }
 }
 

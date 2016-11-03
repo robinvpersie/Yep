@@ -7,13 +7,18 @@
 //
 
 import UIKit
+import YepKit
+import YepNetworking
 import Ruler
+import RxSwift
+import RxCocoa
 
-class RegisterVerifyMobileViewController: SegueViewController {
+final class RegisterVerifyMobileViewController: SegueViewController {
 
     var mobile: String!
     var areaCode: String!
 
+    private lazy var disposeBag = DisposeBag()
     
     @IBOutlet private weak var verifyMobileNumberPromptLabel: UILabel!
     @IBOutlet private weak var verifyMobileNumberPromptLabelTopConstraint: NSLayoutConstraint!
@@ -28,20 +33,24 @@ class RegisterVerifyMobileViewController: SegueViewController {
     @IBOutlet private weak var callMeButtonTopConstraint: NSLayoutConstraint!
 
     private lazy var nextButton: UIBarButtonItem = {
-        let button = UIBarButtonItem(title: NSLocalizedString("Next", comment: ""), style: .Plain, target: self, action: "next:")
+        let button = UIBarButtonItem()
+        button.title = NSLocalizedString("Next", comment: "")
+        button.rx_tap
+            .subscribeNext({ [weak self] in self?.verifyRegisterMobile() })
+            .addDisposableTo(self.disposeBag)
         return button
     }()
     
     private lazy var callMeTimer: NSTimer = {
-        let timer = NSTimer.scheduledTimerWithTimeInterval(1.0, target: self, selector: "tryCallMe:", userInfo: nil, repeats: true)
+        let timer = NSTimer.scheduledTimerWithTimeInterval(1.0, target: self, selector: #selector(RegisterVerifyMobileViewController.tryCallMe(_:)), userInfo: nil, repeats: true)
         return timer
     }()
 
     private var haveAppropriateInput = false {
-        willSet {
-            nextButton.enabled = newValue
+        didSet {
+            nextButton.enabled = haveAppropriateInput
 
-            if newValue {
+            if (oldValue != haveAppropriateInput) && haveAppropriateInput {
                 verifyRegisterMobile()
             }
         }
@@ -49,17 +58,24 @@ class RegisterVerifyMobileViewController: SegueViewController {
 
     private var callMeInSeconds = YepConfig.callMeInSeconds()
 
+    deinit {
+        NSNotificationCenter.defaultCenter().removeObserver(self)
+        println("deinit RegisterVerifyMobile")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        view.backgroundColor = UIColor.yepViewBackgroundColor()
+        view.backgroundColor = UIColor.yepViewBackgroundColor() 
 
-        navigationItem.titleView = NavigationTitleLabel(title: NSLocalizedString("Sign up", comment: ""))
+        navigationItem.titleView = NavigationTitleLabel(title: NSLocalizedString("Sign Up", comment: ""))
 
         navigationItem.rightBarButtonItem = nextButton
 
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "activeAgain:", name: AppDelegate.Notification.applicationDidBecomeActive, object: nil)
+        NSNotificationCenter.defaultCenter()
+            .rx_notification(AppDelegate.Notification.applicationDidBecomeActive)
+            .subscribeNext({ [weak self] _ in self?.verifyCodeTextField.becomeFirstResponder() })
+            .addDisposableTo(disposeBag)
 
         verifyMobileNumberPromptLabel.text = NSLocalizedString("Input verification code sent to", comment: "")
         phoneNumberLabel.text = "+" + areaCode + " " + mobile
@@ -67,11 +83,13 @@ class RegisterVerifyMobileViewController: SegueViewController {
         verifyCodeTextField.placeholder = " "
         verifyCodeTextField.backgroundColor = UIColor.whiteColor()
         verifyCodeTextField.textColor = UIColor.yepInputTextColor()
-        verifyCodeTextField.delegate = self
-        verifyCodeTextField.addTarget(self, action: "textFieldDidChange:", forControlEvents: .EditingChanged)
+        verifyCodeTextField.rx_text
+            .map({ $0.characters.count == YepConfig.verifyCodeLength() })
+            .subscribeNext({ [weak self] in self?.haveAppropriateInput = $0 })
+            .addDisposableTo(disposeBag)
 
         callMePromptLabel.text = NSLocalizedString("Didn't get it?", comment: "")
-        callMeButton.setTitle(NSLocalizedString("Call me", comment: ""), forState: .Normal)
+        callMeButton.setTitle(String.trans_buttonCallMe, forState: .Normal)
 
         verifyMobileNumberPromptLabelTopConstraint.constant = Ruler.iPhoneVertical(30, 50, 60, 60).value
         verifyCodeTextFieldTopConstraint.constant = Ruler.iPhoneVertical(30, 40, 50, 50).value
@@ -97,24 +115,20 @@ class RegisterVerifyMobileViewController: SegueViewController {
 
     // MARK: Actions
 
-    @objc private func activeAgain(notification: NSNotification) {
-        verifyCodeTextField.becomeFirstResponder()
-    }
-
     @objc private func tryCallMe(timer: NSTimer) {
         if !haveAppropriateInput {
             if callMeInSeconds > 1 {
-                let callMeInSecondsString = NSLocalizedString("Call me", comment: "") + " (\(callMeInSeconds))"
+                let callMeInSecondsString = String.trans_buttonCallMe + " (\(callMeInSeconds))"
 
-                UIView.performWithoutAnimation {
-                    self.callMeButton.setTitle(callMeInSecondsString, forState: .Normal)
-                    self.callMeButton.layoutIfNeeded()
+                UIView.performWithoutAnimation { [weak self] in
+                    self?.callMeButton.setTitle(callMeInSecondsString, forState: .Normal)
+                    self?.callMeButton.layoutIfNeeded()
                 }
 
             } else {
-                UIView.performWithoutAnimation {
-                    self.callMeButton.setTitle(NSLocalizedString("Call me", comment: ""), forState: .Normal)
-                    self.callMeButton.layoutIfNeeded()
+                UIView.performWithoutAnimation { [weak self] in
+                    self?.callMeButton.setTitle(String.trans_buttonCallMe, forState: .Normal)
+                    self?.callMeButton.layoutIfNeeded()
                 }
 
                 callMeButton.enabled = true
@@ -122,7 +136,7 @@ class RegisterVerifyMobileViewController: SegueViewController {
         }
 
         if (callMeInSeconds > 1) {
-            callMeInSeconds--
+            callMeInSeconds -= 1
         }
     }
 
@@ -130,15 +144,17 @@ class RegisterVerifyMobileViewController: SegueViewController {
 
         callMeTimer.invalidate()
 
-        UIView.performWithoutAnimation {
-            self.callMeButton.setTitle(NSLocalizedString("Calling", comment: ""), forState: .Normal)
-            self.callMeButton.layoutIfNeeded()
+        UIView.performWithoutAnimation { [weak self] in
+            self?.callMeButton.setTitle(String.trans_buttonCalling, forState: .Normal)
+            self?.callMeButton.layoutIfNeeded()
+            self?.callMeButton.enabled = false
         }
 
-        delay(5) {
-            UIView.performWithoutAnimation {
-                self.callMeButton.setTitle(NSLocalizedString("Call me", comment: ""), forState: .Normal)
-                self.callMeButton.layoutIfNeeded()
+        delay(10) {
+            UIView.performWithoutAnimation { [weak self] in
+                self?.callMeButton.setTitle(String.trans_buttonCallMe, forState: .Normal)
+                self?.callMeButton.layoutIfNeeded()
+                self?.callMeButton.enabled = true
             }
         }
 
@@ -146,11 +162,11 @@ class RegisterVerifyMobileViewController: SegueViewController {
             defaultFailureHandler(reason: reason, errorMessage: errorMessage)
 
             if let errorMessage = errorMessage {
-                dispatch_async(dispatch_get_main_queue()) { [weak self] in
+                SafeDispatch.async { [weak self] in
                     YepAlert.alertSorry(message: errorMessage, inViewController: self)
 
-                    UIView.performWithoutAnimation {
-                        self?.callMeButton.setTitle(NSLocalizedString("Call me", comment: ""), forState: .Normal)
+                    UIView.performWithoutAnimation { [weak self] in
+                        self?.callMeButton.setTitle(String.trans_buttonCallMe, forState: .Normal)
                         self?.callMeButton.layoutIfNeeded()
                     }
                 }
@@ -159,18 +175,6 @@ class RegisterVerifyMobileViewController: SegueViewController {
         }, completion: { success in
             println("resendVoiceVerifyCode \(success)")
         })
-    }
-
-    @objc private func textFieldDidChange(textField: UITextField) {
-        guard let text = textField.text else {
-            return
-        }
-
-        haveAppropriateInput = (text.characters.count == YepConfig.verifyCodeLength())
-    }
-
-    @objc private func next(sender: UIBarButtonItem) {
-        verifyRegisterMobile()
     }
 
     private func verifyRegisterMobile() {
@@ -183,16 +187,17 @@ class RegisterVerifyMobileViewController: SegueViewController {
 
         YepHUD.showActivityIndicator()
 
-        verifyMobile(mobile, withAreaCode: areaCode, verifyCode: verifyCode, failureHandler: { [weak self] (reason, errorMessage) in
+        verifyMobile(mobile, withAreaCode: areaCode, verifyCode: verifyCode, failureHandler: { (reason, errorMessage) in
             defaultFailureHandler(reason: reason, errorMessage: errorMessage)
 
             YepHUD.hideActivityIndicator()
 
             if let errorMessage = errorMessage {
-                dispatch_async(dispatch_get_main_queue()) {
+                SafeDispatch.async { [weak self] in
                     self?.nextButton.enabled = false
 
                     YepAlert.alertSorry(message: errorMessage, inViewController: self, withDismissAction: { [weak self] in
+                        self?.verifyCodeTextField.text = nil
                         self?.verifyCodeTextField.becomeFirstResponder()
                     })
                 }
@@ -204,26 +209,13 @@ class RegisterVerifyMobileViewController: SegueViewController {
 
             YepHUD.hideActivityIndicator()
 
-            dispatch_async(dispatch_get_main_queue()) {
+            SafeDispatch.async { [weak self] in
 
                 saveTokenAndUserInfoOfLoginUser(loginUser)
 
-                self.performSegueWithIdentifier("showRegisterPickAvatar", sender: nil)
+                self?.performSegueWithIdentifier("showRegisterPickAvatar", sender: nil)
             }
         })
     }
-}
-
-extension RegisterVerifyMobileViewController: UITextFieldDelegate {
-
-    /*
-    func textFieldShouldReturn(textField: UITextField) -> Bool {
-        if haveAppropriateInput {
-            verifyRegisterMobile()
-        }
-
-        return true
-    }
-    */
 }
 

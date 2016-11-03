@@ -8,23 +8,15 @@
 
 import UIKit
 
-class SettingsMoreCell: UITableViewCell {
+final class SettingsMoreCell: UITableViewCell {
 
     @IBOutlet weak var annotationLabel: UILabel!
-
     @IBOutlet weak var accessoryImageView: UIImageView!
-
 
     override func awakeFromNib() {
         super.awakeFromNib()
 
         accessoryImageView.tintColor = UIColor.yepCellAccessoryImageViewTintColor()
     }
-
-    override func setSelected(selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
-    }
-    
 }
+

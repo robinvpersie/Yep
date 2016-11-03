@@ -7,14 +7,25 @@
 //
 
 import UIKit
+import YepKit
 
-class ChatTextView: UITextView {
+final class ChatTextView: UITextView {
 
     var tapMentionAction: ((username: String) -> Void)?
+    var tapFeedAction: ((feed: DiscoveredFeed?) -> Void)?
 
-    static let detectionTypeName = "ChatTextStorage.detectionTypeName"
+    private static let detectionTypeName = "ChatTextStorage.detectionTypeName"
 
-    enum DetectionType: String {
+    private static let mentionRegularExpressions: [NSRegularExpression] = {
+        let patterns = [
+            "([@＠][A-Za-z0-9_]{4,16})$",
+            "([@＠][A-Za-z0-9_]{4,16})\\s",
+            "([@＠][A-Za-z0-9_]{4,16})[^A-Za-z0-9_\\.]",
+        ]
+        return patterns.map { try! NSRegularExpression(pattern: $0, options: []) }
+    }()
+
+    private enum DetectionType: String {
         case Mention
     }
 
@@ -27,36 +38,55 @@ class ChatTextView: UITextView {
         dataDetectorTypes = [.Link, .PhoneNumber, .CalendarEvent]
     }
 
-    override var text: String! {
-        didSet {
-            let attributedString = NSMutableAttributedString(string: text)
+    func createAttributedStringWithString(string: String) -> NSAttributedString {
 
-            let textRange = NSMakeRange(0, (text as NSString).length)
+        let plainText = string
 
-            attributedString.addAttribute(NSForegroundColorAttributeName, value: textColor!, range: textRange)
-            attributedString.addAttribute(NSFontAttributeName, value: font!, range: textRange)
+        let attributedString = NSMutableAttributedString(string: plainText)
 
-            // mention link
+        let textRange = NSMakeRange(0, (plainText as NSString).length)
 
-            let mentionPattern = "[@＠]([A-Za-z0-9_]{4,16})"
+        attributedString.addAttribute(NSForegroundColorAttributeName, value: textColor!, range: textRange)
+        attributedString.addAttribute(NSFontAttributeName, value: font!, range: textRange)
 
-            let mentionExpression = try! NSRegularExpression(pattern: mentionPattern, options: NSRegularExpressionOptions())
+        // mention link
 
-            mentionExpression.enumerateMatchesInString(text, options: NSMatchingOptions(), range: textRange, usingBlock: { result, flags, stop in
+        func addMentionAttributes(withRange range: NSRange) {
 
-                if let result = result {
-                    let textValue = (self.text as NSString).substringWithRange(result.range)
+            let textValue = (plainText as NSString).substringWithRange(range)
 
-                    let textAttributes: [String: AnyObject] = [
-                        NSLinkAttributeName: textValue,
-                        ChatTextView.detectionTypeName: DetectionType.Mention.rawValue,
-                    ]
+            let textAttributes: [String: AnyObject] = [
+                NSLinkAttributeName: textValue,
+                ChatTextView.detectionTypeName: DetectionType.Mention.rawValue,
+            ]
 
-                    attributedString.addAttributes(textAttributes, range: result.range )
-                }
-            })
+            attributedString.addAttributes(textAttributes, range: range)
+        }
+
+        ChatTextView.mentionRegularExpressions.forEach {
+            let matches = $0.matchesInString(plainText, options: [], range: textRange)
+            for match in matches {
+                let range = match.rangeAtIndex(1)
+                addMentionAttributes(withRange: range)
+            }
+        }
+
+        return attributedString
+    }
+
+    func setAttributedTextWithMessage(message: Message) {
+
+        let key = message.messageID
+
+        if let attributedString = AttributedStringCache.valueForKey(key) {
+            self.attributedText = attributedString
+
+        } else {
+            let attributedString = createAttributedStringWithString(message.textContent)
 
             self.attributedText = attributedString
+
+            AttributedStringCache.setValue(attributedString, forKey: key)
         }
     }
 
@@ -70,11 +100,9 @@ class ChatTextView: UITextView {
 
         // iOS 9 以上，强制不添加文字选择长按手势，免去触发选择文字
         // 共有四种长按手势，iOS 9 正式版里分别加了两次：0.1 Reveal，0.12 tap link，0.5 selection， 0.75 press link
-        if isOperatingSystemAtLeastMajorVersion(9) {
-            if let longPressGestureRecognizer = gestureRecognizer as? UILongPressGestureRecognizer {
-                if longPressGestureRecognizer.minimumPressDuration == 0.5 {
-                    return
-                }
+        if let longPressGestureRecognizer = gestureRecognizer as? UILongPressGestureRecognizer {
+            if longPressGestureRecognizer.minimumPressDuration == 0.5 {
+                return
             }
         }
 
@@ -84,17 +112,30 @@ class ChatTextView: UITextView {
 
 extension ChatTextView: UITextViewDelegate {
 
-    func textView(textView: UITextView, shouldInteractWithURL URL: NSURL, inRange characterRange: NSRange) -> Bool {
+    private func tryMatchSharedFeedWithURL(URL: NSURL) -> Bool {
 
-        guard let detectionTypeName = self.attributedText.attribute(ChatTextView.detectionTypeName, atIndex: characterRange.location, effectiveRange: nil) as? String, detectionType = DetectionType(rawValue: detectionTypeName) else {
-            return true
+        let matched = URL.yep_matchSharedFeed { [weak self] feed in
+            self?.tapFeedAction?(feed: feed)
         }
 
-        let text = (self.text as NSString).substringWithRange(characterRange)
+        return matched
+    }
 
-        self.hangleTapText(text, withDetectionType: detectionType)
+    func textView(textView: UITextView, shouldInteractWithURL URL: NSURL, inRange characterRange: NSRange) -> Bool {
 
-        return true
+        if let detectionTypeName = self.attributedText.attribute(ChatTextView.detectionTypeName, atIndex: characterRange.location, effectiveRange: nil) as? String, detectionType = DetectionType(rawValue: detectionTypeName) {
+
+            let text = (self.text as NSString).substringWithRange(characterRange)
+            self.hangleTapText(text, withDetectionType: detectionType)
+
+            return false
+
+        } else if tryMatchSharedFeedWithURL(URL) {
+            return false
+
+        } else {
+            return true
+        }
     }
 
     private func hangleTapText(text: String, withDetectionType detectionType: DetectionType) {

@@ -8,13 +8,13 @@
 
 import UIKit
 
-class LinkContainerView: UIView {
+final class LinkContainerView: UIView {
 
     var tapAction: (() -> Void)?
 
     lazy var iconImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "icon_link")
+        imageView.image = UIImage.yep_iconLink
         imageView.tintColor = UIColor.yepIconImageViewTintColor()
         return imageView
     }()
@@ -27,8 +27,8 @@ class LinkContainerView: UIView {
     }()
 
     lazy var accessoryImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = UIImage(named: "icon_accessory_mini")
+        let image = UIImage.yep_iconAccessoryMini
+        let imageView = UIImageView(image: image)
         imageView.tintColor = UIColor.yepCellAccessoryImageViewTintColor()
         return imageView
     }()
@@ -38,7 +38,7 @@ class LinkContainerView: UIView {
 
         makeUI()
 
-        let tap = UITapGestureRecognizer(target: self, action: "tap:")
+        let tap = UITapGestureRecognizer(target: self, action: #selector(LinkContainerView.tap(_:)))
         addGestureRecognizer(tap)
     }
 
@@ -52,7 +52,7 @@ class LinkContainerView: UIView {
         textLabel.translatesAutoresizingMaskIntoConstraints = false
         accessoryImageView.translatesAutoresizingMaskIntoConstraints = false
 
-        let views = [
+        let views: [String: AnyObject] = [
             "iconImageView": iconImageView,
             "textLabel": textLabel,
             "accessoryImageView": accessoryImageView,

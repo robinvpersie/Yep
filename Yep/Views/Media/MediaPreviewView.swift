@@ -7,9 +7,10 @@
 //
 
 import UIKit
+import YepKit
 import AVFoundation
 
-class MediaPreviewView: UIView {
+final class MediaPreviewView: UIView {
 
     weak var parentViewController: UIViewController?
 
@@ -26,7 +27,7 @@ class MediaPreviewView: UIView {
                     mediaControlView.type = .Image
 
                     if
-                        let imageFileURL = NSFileManager.yepMessageImageURLWithName(message.localAttachmentName),
+                        let imageFileURL = message.imageFileURL,
                         let image = UIImage(contentsOfFile: imageFileURL.path!) {
 
                             mediaView.scrollView.hidden = false
@@ -36,18 +37,16 @@ class MediaPreviewView: UIView {
                             mediaControlView.shareAction = {
                                 if let vc = self.parentViewController {
 
-                                    UIView.animateWithDuration(0.3, delay: 0.0, options: .CurveEaseInOut, animations: { _ in
-                                        self.alpha = 0.0
-                                    }, completion: { finished in
-                                    })
+                                    UIView.animateWithDuration(0.3, delay: 0.0, options: .CurveEaseInOut, animations: { [weak self] in
+                                        self?.alpha = 0.0
+                                    }, completion: nil)
 
                                     let activityViewController = UIActivityViewController(activityItems: [image], applicationActivities: nil)
                                     
                                     activityViewController.completionWithItemsHandler = { (_, _, _, _) in
-                                        UIView.animateWithDuration(0.3, delay: 0.0, options: .CurveEaseInOut, animations: { _ in
-                                            self.alpha = 1.0
-                                        }, completion: { finished in
-                                        })
+                                        UIView.animateWithDuration(0.3, delay: 0.0, options: .CurveEaseInOut, animations: { [weak self] in
+                                            self?.alpha = 1.0
+                                        }, completion: nil)
                                     }
 
                                     vc.presentViewController(activityViewController, animated: true, completion: nil)
@@ -61,10 +60,8 @@ class MediaPreviewView: UIView {
                     mediaControlView.playState = .Playing
 
                     if
-                        let videoFileURL = NSFileManager.yepMessageVideoURLWithName(message.localAttachmentName) {
+                        let videoFileURL = message.videoFileURL {
                             let playerItem = AVPlayerItem(asset: AVURLAsset(URL: videoFileURL, options: [:]))
-
-                            //let x = NSFileManager.defaultManager().fileExistsAtPath(videoFileURL.path!)
 
                             playerItem.seekToTime(kCMTimeZero)
 
@@ -86,7 +83,7 @@ class MediaPreviewView: UIView {
                                 }
                             })
 
-                            NSNotificationCenter.defaultCenter().addObserver(self, selector: "playerItemDidReachEnd:", name: AVPlayerItemDidPlayToEndTimeNotification, object: player.currentItem)
+                            NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(MediaPreviewView.playerItemDidReachEnd(_:)), name: AVPlayerItemDidPlayToEndTimeNotification, object: player.currentItem)
 
                             mediaControlView.playAction = { mediaControlView in
                                 player.play()
@@ -110,7 +107,7 @@ class MediaPreviewView: UIView {
                             mediaView.scrollView.hidden = true
 
                             if
-                                let imageFileURL = NSFileManager.yepMessageImageURLWithName(message.localThumbnailName),
+                                let imageFileURL = message.videoThumbnailFileURL,
                                 let image = UIImage(contentsOfFile: imageFileURL.path!) {
                                     mediaView.coverImage = image
                             }
@@ -118,18 +115,16 @@ class MediaPreviewView: UIView {
                             mediaControlView.shareAction = {
                                 if let vc = self.parentViewController {
 
-                                    UIView.animateWithDuration(0.3, delay: 0.0, options: .CurveEaseInOut, animations: { _ in
-                                        self.alpha = 0.0
-                                    }, completion: { finished in
-                                    })
+                                    UIView.animateWithDuration(0.3, delay: 0.0, options: .CurveEaseInOut, animations: { [weak self] in
+                                        self?.alpha = 0.0
+                                    }, completion: nil)
 
                                     let activityViewController = UIActivityViewController(activityItems: [videoFileURL], applicationActivities: nil)
 
                                     activityViewController.completionWithItemsHandler = { (_, _, _, _) in
-                                        UIView.animateWithDuration(0.3, delay: 0.0, options: .CurveEaseInOut, animations: { _ in
-                                            self.alpha = 1.0
-                                        }, completion: { finished in
-                                        })
+                                        UIView.animateWithDuration(0.3, delay: 0.0, options: .CurveEaseInOut, animations: { [weak self] in
+                                            self?.alpha = 1.0
+                                        }, completion: nil)
                                     }
 
                                     vc.presentViewController(activityViewController, animated: true, completion: nil)
@@ -174,20 +169,20 @@ class MediaPreviewView: UIView {
         mediaView.translatesAutoresizingMaskIntoConstraints = false
         mediaControlView.translatesAutoresizingMaskIntoConstraints = false
 
-        let viewsDictionary = [
+        let viewsDictionary: [String: AnyObject] = [
             "mediaView": mediaView,
             "mediaControlView": mediaControlView,
         ]
 
-        let mediaViewConstraintsV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[mediaView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
+        let mediaViewConstraintsV = NSLayoutConstraint.constraintsWithVisualFormat("V:|[mediaView]|", options: [], metrics: nil, views: viewsDictionary)
 
-        let mediaViewConstraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[mediaView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
+        let mediaViewConstraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[mediaView]|", options: [], metrics: nil, views: viewsDictionary)
 
         NSLayoutConstraint.activateConstraints(mediaViewConstraintsV)
         NSLayoutConstraint.activateConstraints(mediaViewConstraintsH)
 
 
-        let mediaControlViewConstraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[mediaControlView]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: viewsDictionary)
+        let mediaControlViewConstraintsH = NSLayoutConstraint.constraintsWithVisualFormat("H:|[mediaControlView]|", options: [], metrics: nil, views: viewsDictionary)
 
         let mediaControlViewConstraintHeight = NSLayoutConstraint(item: mediaControlView, attribute: .Height, relatedBy: .Equal, toItem: nil, attribute: .NotAnAttribute, multiplier: 1.0, constant: 50)
 
@@ -198,10 +193,10 @@ class MediaPreviewView: UIView {
     }
 
     func addHideGesture() {
-        let swipeUp = UISwipeGestureRecognizer(target: self, action: "hide")
+        let swipeUp = UISwipeGestureRecognizer(target: self, action: #selector(MediaPreviewView.hide))
         swipeUp.direction = .Up
 
-        let swipeDown = UISwipeGestureRecognizer(target: self, action: "hide")
+        let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(MediaPreviewView.hide))
         swipeDown.direction = .Down
 
         addGestureRecognizer(swipeUp)
@@ -216,18 +211,19 @@ class MediaPreviewView: UIView {
             }
         }
 
-        UIView.animateWithDuration(0.05, delay: 0.0, options: .CurveLinear, animations: { _ in
-            self.mediaView.coverImageView.alpha = 1
-            self.mediaControlView.alpha = 0
+        UIView.animateWithDuration(0.05, delay: 0.0, options: .CurveLinear, animations: { [weak self] in
+            self?.mediaView.coverImageView.alpha = 1
+            self?.mediaControlView.alpha = 0
 
-        }, completion: { finished in
+        }, completion: { _ in
 
-            UIView.animateWithDuration(0.10, delay: 0.0, options: .CurveEaseOut, animations: { _ in
-                self.frame = self.initialframe
-                self.layoutIfNeeded()
+            UIView.animateWithDuration(0.10, delay: 0.0, options: .CurveEaseOut, animations: { [weak self] in
+                guard let strongSelf = self else { return }
+                strongSelf.frame = strongSelf.initialframe
+                strongSelf.layoutIfNeeded()
 
-            }, completion: { finished in
-                self.removeFromSuperview()
+            }, completion: { [weak self] _ in
+                self?.removeFromSuperview()
             })
         })
     }
@@ -251,19 +247,18 @@ class MediaPreviewView: UIView {
             frame = initialframe
             layoutIfNeeded()
 
-            UIView.animateWithDuration(0.15, delay: 0.0, options: .CurveEaseOut, animations: { _ in
-                self.frame = parentView.bounds
-                self.layoutIfNeeded()
+            UIView.animateWithDuration(0.15, delay: 0.0, options: .CurveEaseOut, animations: { [weak self] in
+                self?.frame = parentView.bounds
+                self?.layoutIfNeeded()
 
-            }, completion: { finished in
+            }, completion: { [weak self] _ in
                 if message.mediaType != MessageMediaType.Video.rawValue {
-                    self.mediaView.coverImage = nil
+                    self?.mediaView.coverImage = nil
                 }
 
-                UIView.animateWithDuration(0.1, delay: 0.0, options: .CurveLinear, animations: { _ in
-                    self.mediaControlView.alpha = 1
-                }, completion: { finished in
-                })
+                UIView.animateWithDuration(0.1, delay: 0.0, options: .CurveLinear, animations: { [weak self] in
+                    self?.mediaControlView.alpha = 1
+                }, completion: nil)
             })
         }
     }
@@ -295,7 +290,7 @@ class MediaPreviewView: UIView {
                         VideoPrepareState.readyToPlay = true
 
                         delay(0.3) {
-                            dispatch_async(dispatch_get_main_queue()) {
+                            SafeDispatch.async {
                                 self.mediaView.videoPlayerLayer.player?.play()
                             }
                         }
